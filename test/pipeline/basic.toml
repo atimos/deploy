@@ -1,0 +1,51 @@
+runners = [
+    { name = "linux", args = { php = "7.2" } }
+]
+
+[[steps]]
+    description="Run checks, unit tests and integration tests"
+    mode = "parallel"
+    run-before = { type = "task", id = "install-dev" }
+    run = [
+        { type = "plugin", id = "shell", cmd = "composer", args = ["test:unit"] },
+        { type = "plugin", id = "shell", cmd = "composer", args = ["test:integration"] },
+        { type = "plugin", id = "shell", cmd = "composer", args = ["check:style"] },
+        { type = "plugin", id = "shell", cmd = "composer", args = ["check:mess"] },
+    ]
+
+[[steps]]
+    description="Build docker images"
+    run-before = { type = "task", id = "install-no-dev" }
+    mode = "parallel"
+    run = [
+        { type = "plugin", id = "docker", cmd = "build", args = ["Dockerfile.fpm"] },
+        { type = "plugin", id = "docker", cmd = "build", args = ["Dockerfile.nginx"] },
+    ]
+
+[[steps]]
+    description="Run system and integration tests"
+    run-before = { type = "task", id = "install-dev" }
+    run = [
+        { type = "plugin", id = "shell", cmd = "composer", args = ["test:system"] },
+        { type = "plugin", id = "shell", cmd = "composer", args = ["test:e2e"] },
+    ]
+
+[[steps]]
+    description="Collect test results"
+    mode = "parallel"
+    run = [
+        { type = "plugin", id = "report", cmd = "collect", args = ["test/report/php/report.xml", "junit"] },
+        { type = "plugin", id = "report", cmd = "collect", args = ["test/report/php/clover.xml", "clover"] },
+    ]
+
+[tasks.install-dev]
+    description="Install packages --dev"
+    run = [
+        { type = "plugin", id = "shell", "cmd" = "composer", args = ["install", "--dev"] },
+    ]
+
+[tasks.install-no-dev]
+    description="Install packages --no-dev"
+    run = [
+        { type = "plugin", id = "shell", cmd = "composer", args = ["install", "--no-dev"] },
+    ]

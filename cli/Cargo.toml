@@ -1,0 +1,14 @@
+[package]
+name = "cli"
+version = "0.1.0"
+authors = ["Alexander Seppälä <dev@timot.se>"]
+edition = "2018"
+
+[dependencies.structopt]
+version = "0.2.15"
+
+[dependencies.job]
+path = "../job"
+
+[dependencies.pipeline]
+path = "../pipeline"
