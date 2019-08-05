@@ -29,7 +29,7 @@ impl TryFrom<(data::Step, &InlineUnits)> for Step {
             unit: Unit::Inline {
                 uri: None,
                 args: HashMap::new(),
-                run: map_list(&step.run, &step.execution_mode, inlined_units, Vec::new())?,
+                run: map_list(&step.run, step.execution_mode, inlined_units, Vec::new())?,
                 run_before: map_optional(&step.run_before, inlined_units, Vec::new())?,
                 run_after: map_optional(&step.run_after, inlined_units, Vec::new())?,
                 run_after_error: map_optional(&step.run_after_error, inlined_units, Vec::new())?,
@@ -74,7 +74,7 @@ impl TryFrom<(&data::Command, &InlineUnits, Vec<Url>)> for Unit {
             Ok(Unit::Inline {
                 uri: Some(cmd.uri.clone()),
                 args: check_args(args, &unit.args)?,
-                run: map_list(&unit.run, &unit.execution_mode, inlined_units, used.clone())?,
+                run: map_list(&unit.run, unit.execution_mode, inlined_units, used.clone())?,
                 run_before: map_optional(&unit.run_before, inlined_units, used.clone())?,
                 run_after: map_optional(&unit.run_after, inlined_units, used.clone())?,
                 run_after_error: map_optional(&unit.run_after_error, inlined_units, used.clone())?,
@@ -87,7 +87,7 @@ impl TryFrom<(&data::Command, &InlineUnits, Vec<Url>)> for Unit {
         } else {
             Ok(Unit::Ref {
                 uri: cmd.uri.to_owned(),
-                args: args,
+                args,
             })
         }
     }
@@ -103,8 +103,8 @@ impl From<&data::Argument> for Argument {
     }
 }
 fn map_list(
-    cmds: &Vec<data::Command>,
-    exec_mode: &data::ExecutionMode,
+    cmds: &[data::Command],
+    exec_mode: data::ExecutionMode,
     inlined_units: &InlineUnits,
     used: Vec<Url>,
 ) -> Result<Run, Error> {
@@ -132,7 +132,7 @@ fn map_optional(
 
 fn check_args(
     args: HashMap<String, Argument>,
-    arg_keys: &Vec<data::ArgumentKey>,
+    arg_keys: &[data::ArgumentKey],
 ) -> Result<HashMap<String, Argument>, Error> {
     for key in arg_keys {
         if !args.contains_key(&key.name) {

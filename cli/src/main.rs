@@ -11,6 +11,8 @@ enum Cli {
     Print {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
+        #[structopt(short = "b", long = "verbose")]
+        verbose: bool,
     },
     #[structopt(name = "check")]
     Check {
@@ -21,18 +23,21 @@ enum Cli {
 
 fn main() {
     match Cli::from_args() {
-        Cli::Print { path } => print_pipeline(path),
+        Cli::Print { path , verbose } => print_pipeline(path, verbose),
         Cli::Check { path } => check_pipeline(path),
     }
 }
 
-fn print_pipeline(path: PathBuf) {
+fn print_pipeline(path: PathBuf, verbose: bool) {
     match read(path) {
         Ok(ref data) => match from_toml(data) {
             Ok(pipeline) => {
-                dbg!(&pipeline);
-                for step in pipeline {
-                    dbg!(step);
+                if verbose {
+                    dbg!(pipeline);
+                } else {
+                    for step in pipeline {
+                        dbg!(step.description);
+                    }
                 }
             }
             Err(err) => println!("Error occured: {}", err),

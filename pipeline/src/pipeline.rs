@@ -8,7 +8,7 @@ impl Iterator for Pipeline {
     type Item = Step;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if self.0.len() > 0 {
+        if !self.0.is_empty() {
             Some(self.0.remove(0))
         } else {
             None
