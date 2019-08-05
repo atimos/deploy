@@ -1,51 +1,54 @@
-runners = [
-    { name = "linux", args = { php = "7.2" } }
-]
-
 [[steps]]
     description="Run checks, unit tests and integration tests"
     mode = "parallel"
-    run-before = { type = "task", id = "install-dev" }
+    run-before = {uri = "inline://install-dev"}
     run = [
-        { type = "plugin", id = "shell", cmd = "composer", args = ["test:unit"] },
-        { type = "plugin", id = "shell", cmd = "composer", args = ["test:integration"] },
-        { type = "plugin", id = "shell", cmd = "composer", args = ["check:style"] },
-        { type = "plugin", id = "shell", cmd = "composer", args = ["check:mess"] },
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["test:unit"]}},
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["test:integration"]}},
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["check:style"]}},
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["check:mess"]}},
     ]
 
 [[steps]]
     description="Build docker images"
-    run-before = { type = "task", id = "install-no-dev" }
+    run-before = {uri = "inline://install-no-dev"}
     mode = "parallel"
     run = [
-        { type = "plugin", id = "docker", cmd = "build", args = ["Dockerfile.fpm"] },
-        { type = "plugin", id = "docker", cmd = "build", args = ["Dockerfile.nginx"] },
+        {uri = "plugin://docker.core#build", args = {image = "Dockerfile.fpm"}},
+        {uri = "plugin://docker.core#build", args = {image = "Dockerfile.nginx"}},
     ]
 
 [[steps]]
     description="Run system and integration tests"
-    run-before = { type = "task", id = "install-dev" }
+    run-before = {uri = "inline://install-dev"}
     run = [
-        { type = "plugin", id = "shell", cmd = "composer", args = ["test:system"] },
-        { type = "plugin", id = "shell", cmd = "composer", args = ["test:e2e"] },
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["test:system"]}},
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["test:e2e"]}},
     ]
 
 [[steps]]
     description="Collect test results"
     mode = "parallel"
     run = [
-        { type = "plugin", id = "report", cmd = "collect", args = ["test/report/php/report.xml", "junit"] },
-        { type = "plugin", id = "report", cmd = "collect", args = ["test/report/php/clover.xml", "clover"] },
+        {uri = "plugin://report.core#collect", args = {output = "test/report/php/report.xml", type = "junit"}},
+        {uri = "plugin://report.core#collect", args = {output = "test/report/php/clover.xml", type = "clover"}},
     ]
 
-[tasks.install-dev]
+[inline."install-dev"]
     description="Install packages --dev"
     run = [
-        { type = "plugin", id = "shell", "cmd" = "composer", args = ["install", "--dev"] },
+        {uri = "inline://install", args = {env = "--dev"}},
     ]
 
-[tasks.install-no-dev]
+[inline."install-no-dev"]
     description="Install packages --no-dev"
     run = [
-        { type = "plugin", id = "shell", cmd = "composer", args = ["install", "--no-dev"] },
+        {uri = "inline://install", args = {env = "--no-dev"}},
+    ]
+
+[inline.install]
+    description="Install packages --dev"
+    args= [{name = "env"}]
+    run = [
+        { uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["install", "{{env}}"]} },
     ]

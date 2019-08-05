@@ -1,26 +1,36 @@
 use toml::de::Error as TomlError;
 
-use super::pipeline::TaskId;
+use super::Url;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
     Toml(TomlError),
-    TaskNotFound(TaskId),
-    TaskRecursion(Vec<TaskId>),
+    DomainMissing(Url),
+    UnitNotFound(Url),
+    UnitRecursion(Vec<Url>),
+    ArgumentMissing(String),
+    UnexpectedArgument(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Toml(err) => write!(f, "{}", err),
-            Self::TaskNotFound(task) => write!(f, "Could not find task \"{}\" in pipeline", task),
-            Self::TaskRecursion(tasks) => write!(
+            Self::DomainMissing(uri) => write!(f, "Command uri \"{}\" is missing domain ", uri),
+            Self::UnitNotFound(uri) => write!(f, "Could not find unit \"{}\"", uri),
+            Self::UnitRecursion(uri_list) => write!(
                 f,
-                r#"Recursion found in pipeline between tasks "{}""#,
-                tasks.join(r#"", ""#)
+                "Recursion found between units {}",
+                uri_list
+                    .iter()
+                    .map(Url::to_string)
+                    .collect::<Vec<_>>()
+                    .join(", ")
             ),
+            Self::ArgumentMissing(arg) => write!(f, "Argument \"{}\" is missing", arg),
+            Self::UnexpectedArgument(arg) => write!(f, "Unexpected argument \"{}\"", arg),
         }
     }
 }

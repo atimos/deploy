@@ -51,7 +51,7 @@ pub enum Command {
         run_after_error: Option<Box<Command>>,
     },
     Plugin {
-        id: String,
+        uri: String,
         cmd: String,
         args: Option<Args>,
     },
@@ -127,8 +127,8 @@ fn expand_optional_cmd(cmd: Option<PlCommand>, tasks: &Tasks) -> Option<Command>
 
 fn expand_cmd(cmd: PlCommand, tasks: &Tasks) -> Command {
     match cmd {
-        PlCommand::Plugin { id, cmd, args } => Command::Plugin {
-            id,
+        PlCommand::Plugin { uri, cmd, args } => Command::Plugin {
+            uri,
             cmd,
             args: args.map(From::from).take(),
         },

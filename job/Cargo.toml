@@ -4,9 +4,6 @@ version = "0.1.0"
 authors = ["Alexander Seppälä <dev@timot.se>"]
 edition = "2018"
 
-[dependencies.serde]
-version = "1.0.91"
-features = ["derive"]
-
-[dependencies.pipeline]
-path = "../pipeline"
+[dependencies]
+serde = {version = "1.0.91", features = ["derive"]}
+pipeline = {path = "../pipeline"}

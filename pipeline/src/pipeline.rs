@@ -1,78 +1,54 @@
+use super::Url;
 use std::collections::HashMap;
 
-use serde::Deserialize;
+#[derive(Debug)]
+pub struct Pipeline(pub(crate) Vec<Step>);
 
-pub type TaskId = String;
-pub type Tasks = HashMap<TaskId, Task>;
+impl Iterator for Pipeline {
+    type Item = Step;
 
-#[derive(Deserialize, Clone)]
-#[serde(tag = "type")]
-pub enum Command {
-    #[serde(rename = "plugin")]
-    Plugin {
-        id: String,
-        cmd: String,
-        args: Option<Args>,
-    },
-    #[serde(rename = "task")]
-    Task { id: TaskId, args: Option<Args> },
-}
-
-#[derive(Deserialize, Clone)]
-#[serde(untagged)]
-pub enum Args {
-    Map(HashMap<String, String>),
-    List(Vec<String>),
-}
-
-#[derive(Deserialize, Clone)]
-pub struct Task {
-    #[serde(default)]
-    pub execution_mode: ExecutionMode,
-    pub run: Vec<Command>,
-    #[serde(rename = "run-before")]
-    pub run_before: Option<Command>,
-    #[serde(rename = "run-after")]
-    pub run_after: Option<Command>,
-    #[serde(rename = "run-after-success")]
-    pub run_after_success: Option<Command>,
-    #[serde(rename = "run-after-error")]
-    pub run_after_error: Option<Command>,
-}
-
-#[derive(Deserialize)]
-pub struct Step {
-    pub description: String,
-    #[serde(flatten)]
-    pub task: Task,
-}
-
-#[derive(Deserialize, Copy, Clone)]
-pub enum ExecutionMode {
-    #[serde(rename = "sequence-stop-on-error")]
-    SequenceStopOnError,
-    #[serde(rename = "sequence-run-all")]
-    SequenceRunAll,
-    #[serde(rename = "parallel")]
-    Parallel,
-}
-
-impl Default for ExecutionMode {
-    fn default() -> Self {
-        Self::SequenceStopOnError
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.0.len() > 0 {
+            Some(self.0.remove(0))
+        } else {
+            None
+        }
     }
 }
 
-#[derive(Deserialize)]
-pub struct Runner {
-    pub name: String,
-    pub args: Option<Args>,
+#[derive(Debug)]
+pub struct Step {
+    pub description: String,
+    pub unit: Unit,
 }
 
-#[derive(Deserialize)]
-pub(crate) struct Pipeline {
-    pub runners: Option<Vec<Runner>>,
-    pub steps: Vec<Step>,
-    #[serde(default)]
-    pub tasks: Tasks,
+#[derive(Debug)]
+pub enum Unit {
+    Ref {
+        uri: Url,
+        args: HashMap<String, Argument>,
+    },
+    Inline {
+        uri: Option<Url>,
+        args: HashMap<String, Argument>,
+        run: Run,
+        run_before: Option<Box<Unit>>,
+        run_after: Option<Box<Unit>>,
+        run_after_success: Option<Box<Unit>>,
+        run_after_error: Option<Box<Unit>>,
+    },
+}
+
+#[derive(Debug)]
+pub enum Argument {
+    Map(HashMap<String, String>),
+    List(Vec<String>),
+    String(String),
+}
+
+#[derive(Debug)]
+pub enum Run {
+    SequenceStopOnError(Vec<Unit>),
+    SequenceRunAll(Vec<Unit>),
+    Parallel(Vec<Unit>),
 }
