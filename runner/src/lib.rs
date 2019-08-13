@@ -14,18 +14,9 @@ impl Runner {
         let job = Job {
             id: id,
             pipeline,
-            space: Space {
-                work: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/work"),
-                publish: Publish {
-                    html: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/publish/html"),
-                    error: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/publish/error"),
-                    log: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/publish/log"),
-                },
-                scratch: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/scratch"),
-                artifact: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref() + "/artifact"),
-            },
+            workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref())
         };
-        dbg!(&job.space);
+        dbg!(&job);
 
         if self.current.is_none() {
             self.current = Some(job);
@@ -45,33 +36,18 @@ impl Runner {
 pub struct Job {
     pub id: Uuid,
     pub pipeline: Pipeline,
-    pub space: Space,
+    pub workspace: PathBuf,
 }
 
 impl Job {
     pub fn run(&mut self) {
         for step in &self.pipeline.steps {
-            run_step(&step, &mut self.space);
+            run_step(&step, &mut self.workspace);
         }
     }
 }
 
-#[derive(Debug)]
-pub struct Space {
-    pub work: PathBuf,
-    pub publish: Publish,
-    pub artifact: PathBuf,
-    pub scratch: PathBuf,
-}
-
-#[derive(Debug)]
-pub struct Publish {
-    pub html: PathBuf,
-    pub log: PathBuf,
-    pub error: PathBuf,
-}
-
-fn run_step(step: &Step, space: &mut Space) {
+fn run_step(step: &Step, space: &mut PathBuf) {
     if let Some(cmd) = &step.run_before {
         run_command(cmd);
     }
