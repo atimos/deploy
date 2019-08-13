@@ -1,0 +1,45 @@
+steps:
+    - description: "Run checks, unit tests and integration tests"
+      mode: "parallel"
+      run-before: {uri: "inline://install-dev"}
+      run:
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:unit"]}}
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:integration"]}}
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["check:style"]}}
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["check:mess"]}}
+
+    - description: "Build docker images"
+      run-before: {uri: "inline://install-no-dev"}
+      mode: "parallel"
+      run:
+          - {uri: "plugin://docker.core#build", args: {image: "Dockerfile.fpm"}}
+          - {uri: "plugin://docker.core#build", args: {image: "Dockerfile.nginx"}}
+
+    - description: "Run system and integration tests"
+      run-before: {uri: "inline://install-dev"}
+      run:
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:system"]}}
+          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:e2e"]}}
+
+    - description: "Collect test results"
+      mode: "parallel"
+      run:
+          - {uri: "plugin://report.core#collect", args: {output: "test/report/php/report.xml", type: "junit"}}
+          - {uri: "plugin://report.core#collect", args: {output: "test/report/php/clover.xml", type: "clover"}}
+
+inline:
+    install-dev:
+        description: "Install packages --dev"
+        run:
+            - {uri: "inline://install", args: {env: "--dev"}}
+
+    install-no-dev:
+        description: "Install packages --no-dev"
+        run:
+            - {uri: "inline://install", args: {env: "--no-dev"}}
+
+    install:
+        args:
+            - {name: "env"}
+        run:
+            - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["install", "{{args.env}}"]}}

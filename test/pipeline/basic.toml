@@ -50,5 +50,5 @@
     description="Install packages --dev"
     args= [{name = "env"}]
     run = [
-        { uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["install", "{{env}}"]} },
+        {uri = "plugin://shell.core#exec", args = {cmd = "composer", args = ["install", "{{env}}"]}},
     ]

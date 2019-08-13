@@ -22,7 +22,7 @@ impl std::fmt::Display for Error {
             Self::UnitNotFound(uri) => write!(f, "Could not find unit \"{}\"", uri),
             Self::UnitRecursion(uri_list) => write!(
                 f,
-                "Recursion found between units {}",
+                "Recursion found in {}",
                 uri_list
                     .iter()
                     .map(Url::to_string)

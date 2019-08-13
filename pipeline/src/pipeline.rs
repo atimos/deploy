@@ -1,42 +1,50 @@
 use super::Url;
+use uuid::Uuid;
 use std::collections::HashMap;
 
 #[derive(Debug)]
-pub struct Pipeline(pub(crate) Vec<Step>);
-
-impl Iterator for Pipeline {
-    type Item = Step;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if !self.0.is_empty() {
-            Some(self.0.remove(0))
-        } else {
-            None
-        }
-    }
+pub struct Pipeline {
+    pub steps: Vec<Step>,
+    pub inline: HashMap<String, Inline>,
 }
 
 #[derive(Debug)]
 pub struct Step {
     pub description: String,
-    pub unit: Unit,
+    pub run: Commands,
+    pub run_before: Option<Command>,
+    pub run_after: Option<Command>,
+    pub run_after_success: Option<Command>,
+    pub run_after_error: Option<Command>,
 }
 
 #[derive(Debug)]
-pub enum Unit {
-    Ref {
-        uri: Url,
-        args: HashMap<String, Argument>,
-    },
-    Inline {
-        uri: Option<Url>,
-        args: HashMap<String, Argument>,
-        run: Run,
-        run_before: Option<Box<Unit>>,
-        run_after: Option<Box<Unit>>,
-        run_after_success: Option<Box<Unit>>,
-        run_after_error: Option<Box<Unit>>,
-    },
+pub struct Command {
+    pub id: CommandId,
+    pub uri: Url,
+    pub args: HashMap<String, Argument>,
+}
+
+#[derive(Debug)]
+pub enum CommandId {
+    Uuid(Uuid),
+    Named(String),
+}
+
+#[derive(Debug)]
+pub enum Commands {
+    SequenceStopOnError(Vec<Command>),
+    SequenceRunAll(Vec<Command>),
+    Parallel(Vec<Command>),
+}
+
+#[derive(Debug)]
+pub struct Inline {
+    pub run: Commands,
+    pub run_before: Option<Command>,
+    pub run_after: Option<Command>,
+    pub run_after_success: Option<Command>,
+    pub run_after_error: Option<Command>,
 }
 
 #[derive(Debug)]
@@ -44,11 +52,4 @@ pub enum Argument {
     Map(HashMap<String, String>),
     List(Vec<String>),
     String(String),
-}
-
-#[derive(Debug)]
-pub enum Run {
-    SequenceStopOnError(Vec<Unit>),
-    SequenceRunAll(Vec<Unit>),
-    Parallel(Vec<Unit>),
 }

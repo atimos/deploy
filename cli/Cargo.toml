@@ -6,5 +6,5 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.2.15"
-#job = {path = "../job"}
 pipeline = {path = "../pipeline"}
+runner = {path = "../runner"}

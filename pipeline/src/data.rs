@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 
+use uuid::Uuid;
 use serde::Deserialize;
 
 use super::Url;
@@ -8,15 +9,29 @@ use super::Url;
 pub struct Pipeline {
     pub steps: Vec<Step>,
     #[serde(default)]
-    pub inline: HashMap<String, Unit>,
+    pub inline: HashMap<String, Inline>,
 }
 
 #[derive(Deserialize, Clone, Debug)]
 #[serde(tag = "type")]
 pub struct Command {
+    #[serde(default)]
+    pub id: CommandId,
     pub uri: Url,
     #[serde(default)]
     pub args: HashMap<String, Argument>,
+}
+
+#[derive(Deserialize, Clone, Debug)]
+pub enum CommandId {
+    Uuid(Uuid),
+    Named(String),
+}
+
+impl Default for CommandId {
+    fn default() -> Self {
+        Self::Uuid(Uuid::new_v4())
+    }
 }
 
 #[derive(Deserialize, Clone, Debug)]
@@ -33,7 +48,7 @@ pub struct ArgumentKey {
 }
 
 #[derive(Deserialize, Clone, Debug)]
-pub struct Unit {
+pub struct Inline {
     #[serde(default)]
     pub args: Vec<ArgumentKey>,
     #[serde(default)]

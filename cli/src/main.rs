@@ -1,9 +1,11 @@
 use std::fs::read;
 use std::path::PathBuf;
 
-//use job::from_pipeline;
 use pipeline::from_toml;
+use runner::Runner;
 use structopt::StructOpt;
+
+type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
 #[derive(Debug, StructOpt)]
 enum Cli {
@@ -11,7 +13,7 @@ enum Cli {
     Print {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
-        #[structopt(short = "b", long = "verbose")]
+        #[structopt(short = "v", long = "verbose")]
         verbose: bool,
     },
     #[structopt(name = "check")]
@@ -19,48 +21,45 @@ enum Cli {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
     },
+    #[structopt(name = "run")]
+    Run {
+        #[structopt(default_value = "Pipeline.toml")]
+        path: PathBuf,
+    },
 }
 
 fn main() {
-    match Cli::from_args() {
-        Cli::Print { path , verbose } => print_pipeline(path, verbose),
+    let result = match Cli::from_args() {
+        Cli::Print { path, verbose } => print_pipeline(path, verbose),
         Cli::Check { path } => check_pipeline(path),
+        Cli::Run { path } => run_pipeline(path),
+    };
+
+    if let Err(error) = result {
+        eprintln!("Error: {}", error);
     }
 }
 
-fn print_pipeline(path: PathBuf, verbose: bool) {
-    match read(path) {
-        Ok(ref data) => match from_toml(data) {
-            Ok(pipeline) => {
-                if verbose {
-                    dbg!(pipeline);
-                } else {
-                    for step in pipeline {
-                        dbg!(step.description);
-                    }
-                }
-            }
-            Err(err) => println!("Error occured: {}", err),
-        },
-        Err(err) => println!("Error occured: {}", err),
-    }
-}
-
-fn check_pipeline(path: PathBuf) {
-    let mut count = 0;
-    match read(&path) {
-        Ok(ref data) => {
-            for _ in 0..10000 {
-                match from_toml(data) {
-                    Ok(_pipeline) => {
-                        count += 1;
-                    }
-                    Err(err) => println!("Error occured: {}", err),
-                }
-            }
+fn print_pipeline(path: PathBuf, verbose: bool) -> Result {
+    let pipeline = from_toml(&read(path)?)?;
+    if verbose {
+        dbg!(pipeline);
+    } else {
+        for step in pipeline.steps {
+            println!("Step: {}", step.description);
         }
-        Err(err) => println!("Error occured: {}", err),
-    }
+    } Ok(()) }
 
-    dbg!(count);
+fn check_pipeline(path: PathBuf) -> Result {
+    from_toml(&read(path)?)?;
+    println!("No errors");
+    Ok(())
+}
+
+fn run_pipeline(path: PathBuf) -> Result {
+    let mut runner = Runner::default();
+    runner.add(from_toml(&read(path)?)?);
+
+    runner.run_next();
+    Ok(())
 }
