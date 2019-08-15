@@ -77,24 +77,16 @@ impl Into<p::Status> for Status {
 impl Into<p::Command> for Command {
     fn into(self) -> p::Command {
         match self {
-            Self::Unit { id, name, args } => p::Command::Unit {
+            Self::Unit { id, args } => p::Command::Unit {
                 id,
-                name,
                 args: args.map(Into::into),
             },
-            Self::Wasm {
-                id,
-                uri,
-                command,
-                args,
-            } => p::Command::Wasm {
-                id,
+            Self::Wasm { uri, command, args } => p::Command::Wasm {
                 uri,
                 command,
                 args: args.map(Into::into),
             },
             Self::Oci {
-                id,
                 repository,
                 image,
                 command,
@@ -102,7 +94,6 @@ impl Into<p::Command> for Command {
                 args,
                 force_rebuild,
             } => p::Command::Oci {
-                id,
                 repository,
                 raw_command,
                 image,

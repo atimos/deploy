@@ -48,7 +48,7 @@ fn print_pipeline(path: PathBuf, verbose: bool) -> Result {
         for (idx, step) in pipeline.steps.iter().enumerate() {
             match &step.description {
                 Some(description) => println!("Step {}: {}", idx + 1, description),
-                None => println!("Step {}", idx),
+                None => println!("Step {}", idx + 1),
             }
         }
     }

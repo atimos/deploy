@@ -5,7 +5,7 @@
 [[steps]]
     description="Run checks, unit tests and integration tests"
     commands = [
-        {type = "unit", name = "docker-install", args = {dev-mode = "dev"}},
+        {type = "unit", id = "docker-install", args = {dev-mode = "dev"}},
         {mode = "parallel", commands = [
             {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:unit"},
             {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:integration"},
@@ -19,18 +19,18 @@
     commands = [
         {mode = "parallel", commands = [
             {type = "wasm", uri = "core://env", command = "set_local", args = {tag = "{{env.docker_repository}}:{{env.service_name}}/{{env.build_number}}"}},
-            {type = "unit", name = "docker-install", args = {dev-mode = "no-dev"}},
+            {type = "unit", id = "docker-install", args = {dev-mode = "no-dev"}},
         ]},
         {mode = "parallel", commands = [
-            {type = "unit", name = "build-image", args = {image = "Dockerfile.fpm", tag = "{{env.tag}}/fpm"}},
-            {type = "unit", name = "build-image", args = {image = "Dockerfile.nginx", tag = "{{env.tag}}/nginx"}},
+            {type = "unit", id = "build-image", args = {image = "Dockerfile.fpm", tag = "{{env.tag}}/fpm"}},
+            {type = "unit", id = "build-image", args = {image = "Dockerfile.nginx", tag = "{{env.tag}}/nginx"}},
         ]},
     ]
 
 [[steps]]
     description="Run system and integration tests"
     commands = [
-        {type = "unit", name = "docker-install", args = {dev-mode = "dev"}},
+        {type = "unit", id = "docker-install", args = {dev-mode = "dev"}},
         {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:system"},
         {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:e2e"},
     ]

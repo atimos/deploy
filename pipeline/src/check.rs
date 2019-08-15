@@ -1,11 +1,7 @@
-use std::collections::HashMap;
-
 use super::{
     error::Error,
-    pipeline::{ArgumentKey, Arguments, Command, Commands, Pipeline, Unit},
+    pipeline::{ArgumentKey, Arguments, Command, Commands, Pipeline, Units, Unit},
 };
-
-type Units = HashMap<String, Unit>;
 
 pub fn check(pipeline: Pipeline) -> Result<Pipeline, Error> {
     check_steps(&pipeline.steps, &pipeline.units)?;
@@ -41,17 +37,17 @@ fn check_cmd(cmd: &Command, units: &Units, mut found: Vec<String>) -> Result<(),
     match cmd {
         Command::Oci { .. } => Ok(()),
         Command::Wasm { .. } => Ok(()),
-        Command::Unit { name, args, .. } => {
-            if found.contains(name) {
-                found.push(name.to_owned());
+        Command::Unit { id, args, .. } => {
+            if found.contains(id) {
+                found.push(id.to_owned());
                 return Err(Error::UnitRecursion(found));
             }
-            if let Some(unit) = units.get(name) {
-                found.push(name.to_owned());
+            if let Some(unit) = units.get(id) {
+                found.push(id.to_owned());
                 check_args(args, &unit.args)?;
                 check_cmds(&unit.commands, units, found)
             } else {
-                Err(Error::UnitNotFound(name.to_owned()))
+                Err(Error::UnitNotFound(id.to_owned()))
             }
         }
     }

@@ -1,33 +1,25 @@
-use pipeline::{Command, Commands, Pipeline, Unit};
+use pipeline::{Pipeline, Units, Unit, Commands, Command, Arguments, ExecutionMode};
 use std::path::PathBuf;
 use uuid::Uuid;
 
 #[derive(Default)]
 pub struct Runner {
     jobs: Vec<Job>,
-    current: Option<Job>,
 }
 
 impl Runner {
     pub fn add(&mut self, pipeline: Pipeline) {
-        // let id = Uuid::new_v4();
-        // let job = Job {
-        //     id: id,
-        //     pipeline,
-        //     workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref())
-        // };
-        // dbg!(&job);
-        //
-        // if self.current.is_none() {
-        //     self.current = Some(job);
-        // } else {
-        //     self.jobs.push(job);
-        // }
+        let id = Uuid::new_v4();
+        self.jobs.push(Job {
+            id: id,
+            pipeline,
+            workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref())
+        });
     }
 
     pub fn run_next(&mut self) {
-        if let Some(mut job) = self.current.take() {
-            //job.run();
+        if self.jobs.len() > 0 {
+            self.jobs.remove(0).run();
         }
     }
 }
@@ -39,78 +31,56 @@ pub struct Job {
     pub workspace: PathBuf,
 }
 
-// impl Job {
-//     pub fn run(&mut self) {
-//         for step in &self.pipeline.steps {
-//             run_step(&step, &mut self.workspace);
-//         }
-//     }
-// }
-//
-// fn run_step(step: &Step, space: &mut PathBuf) {
-//     if let Some(cmd) = &step.run_before {
-//         run_command(cmd);
-//     }
-//
-//     run_commands(&step.run);
-//
-//     if let Some(cmd) = &step.run_after_error {
-//         run_command(cmd);
-//     }
-//
-//     if let Some(cmd) = &step.run_after_success {
-//         run_command(cmd);
-//     }
-//
-//     if let Some(cmd) = &step.run_after {
-//         run_command(cmd);
-//     }
-// }
-//
-// fn run_commands(cmds: &Commands) {
-//     match cmds {
-//         Commands::Parallel(cmds) => {
-//             for cmd in cmds {
-//                 run_command(cmd);
-//             }
-//         }
-//         Commands::SequenceRunAll(cmds) => {
-//             for cmd in cmds {
-//                 run_command(cmd);
-//             }
-//         }
-//         Commands::SequenceStopOnError(cmds) => {
-//             for cmd in cmds {
-//                 run_command(cmd);
-//             }
-//         }
-//     }
-// }
-//
-// fn run_command(cmd: &Command) {
-//     if cmd.uri.scheme() == "inline" {
-//         //run_inline_unit(&cmd);
-//     } else {
-//         dbg!(cmd);
-//     }
-// }
-//
-// fn run_inline_unit(unit: &Inline) {
-//     if let Some(cmd) = &unit.run_before {
-//         run_command(cmd);
-//     }
-//
-//     run_commands(&unit.run);
-//
-//     if let Some(cmd) = &unit.run_after_error {
-//         run_command(cmd);
-//     }
-//
-//     if let Some(cmd) = &unit.run_after_success {
-//         run_command(cmd);
-//     }
-//
-//     if let Some(cmd) = &unit.run_after {
-//         run_command(cmd);
-//     }
-// }
+impl Job {
+    pub fn run(&mut self) {
+        for (idx, unit) in self.pipeline.steps.iter().enumerate() {
+            println!("Running: Step {}: {:?}", idx, unit.description);
+            run_unit(unit, &None, &self.pipeline.units);
+        }
+    }
+}
+
+fn run_unit(unit: &Unit, args: &Option<Arguments>, units: &Units) {
+    println!("{:?}", args);
+    run_cmds(&unit.commands, units);
+}
+
+fn run_cmds(cmds: &Commands, units: &Units) {
+    match cmds {
+        Commands::Multiple { commands, mode, .. } => {
+            match mode {
+                ExecutionMode::Parallel => run_in_parallel(&commands, units),
+                ExecutionMode::SequenceRunAll => run_all_in_sequence(&commands, units),
+                ExecutionMode::SequenceStopOnError => run_sequence_to_error(&commands, units),
+            }
+        }
+        Commands::Single(cmd) => run_cmd(&cmd, units)
+    }
+}
+
+fn run_in_parallel(list: &[Commands], units: &Units) {
+    run_all_in_sequence(list, units);
+}
+fn run_all_in_sequence(list: &[Commands], units: &Units) {
+    for cmds in list {
+        run_cmds(cmds, units);
+    }
+}
+fn run_sequence_to_error(list: &[Commands], units: &Units) {
+    for cmds in list {
+        run_cmds(cmds, units);
+    }
+}
+
+fn run_cmd(cmd: &Command, units: &Units) {
+    dbg!(cmd);
+    match cmd {
+        Command::Unit { id, args } => {
+            run_unit(&units[id], args, units);
+        }
+        Command::Wasm { uri, command, args } => {
+        }
+        Command::Oci { repository, image, command, raw_command, force_rebuild, args } => {
+        }
+    }
+}

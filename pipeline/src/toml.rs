@@ -37,20 +37,17 @@ pub enum Commands {
 pub enum Command {
     #[serde(rename = "unit")]
     Unit {
-        id: Option<String>,
-        name: String,
+        id: String,
         args: Option<Arguments>,
     },
     #[serde(rename = "wasm")]
     Wasm {
-        id: Option<String>,
         uri: String,
         command: String,
         args: Option<Arguments>,
     },
     #[serde(rename = "oci")]
     Oci {
-        id: Option<String>,
         repository: String,
         image: String,
         command: String,

@@ -3,8 +3,10 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct Pipeline {
     pub steps: Vec<Unit>,
-    pub units: HashMap<String, Unit>,
+    pub units: Units,
 }
+
+pub type Units = HashMap<String, Unit>;
 
 #[derive(Debug)]
 pub struct Unit {
@@ -45,18 +47,15 @@ pub enum Status {
 #[derive(Debug)]
 pub enum Command {
     Unit {
-        id: Option<String>,
-        name: String,
+        id: String,
         args: Option<Arguments>,
     },
     Wasm {
-        id: Option<String>,
         uri: String,
         command: String,
         args: Option<Arguments>,
     },
     Oci {
-        id: Option<String>,
         repository: String,
         image: String,
         command: String,
