@@ -36,10 +36,7 @@ pub enum Commands {
 #[serde(tag = "type")]
 pub enum Command {
     #[serde(rename = "unit")]
-    Unit {
-        id: String,
-        args: Option<Arguments>,
-    },
+    Unit { id: String, args: Option<Arguments> },
     #[serde(rename = "wasm")]
     Wasm {
         uri: String,

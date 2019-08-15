@@ -3,7 +3,6 @@ members = [
     'cli',
     'pipeline',
     'runner',
-    'plugin',
 ]
 
 [profile.release]

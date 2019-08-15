@@ -1,6 +1,7 @@
+mod environment;
+mod oci;
 mod unit;
 mod wasm;
-mod oci;
 
 use pipeline::Pipeline;
 use std::path::PathBuf;
@@ -17,7 +18,7 @@ impl Runner {
         self.jobs.push(Job {
             id: id,
             pipeline,
-            workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref())
+            workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref()),
         });
     }
 
@@ -39,7 +40,7 @@ impl Job {
     pub fn run(&mut self) {
         for (idx, unit) in self.pipeline.steps.iter().enumerate() {
             println!("Running: Step {}: {:?}", idx, unit.description);
-            unit::run(unit, &None, &self.pipeline.units);
+            unit::run(unit, &None, &self.pipeline.units, &mut Default::default());
             println!("");
         }
     }

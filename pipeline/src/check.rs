@@ -1,6 +1,6 @@
 use super::{
     error::Error,
-    pipeline::{ArgumentKey, Arguments, Command, Commands, Pipeline, Units, Unit},
+    pipeline::{ArgumentKey, Arguments, Command, Commands, Pipeline, Unit, Units},
 };
 
 pub fn check(pipeline: Pipeline) -> Result<Pipeline, Error> {
