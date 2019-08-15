@@ -1,13 +1,13 @@
 mod docker;
-mod wasm;
 mod https;
+mod wasm;
 
-use std::{path::Path, collections::HashMap};
 use pipeline::Command;
+use std::{collections::HashMap, path::Path};
 
 pub use docker::DockerPlugin;
-pub use wasm::WasmPlugin;
 pub use https::HttpsPlugin;
+pub use wasm::WasmPlugin;
 
 pub type Result = std::result::Result<(), Error>;
 

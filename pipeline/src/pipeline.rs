@@ -20,7 +20,7 @@ pub enum Commands {
         commands: Vec<Commands>,
         mode: ExecutionMode,
         run_on_status: Vec<Status>,
-    }
+    },
 }
 
 #[derive(Debug)]

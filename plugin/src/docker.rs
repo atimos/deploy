@@ -1,4 +1,4 @@
-use super::{Plugin, Paths, Environment, Command, Error, Result};
+use super::{Command, Environment, Error, Paths, Plugin, Result};
 
 pub struct DockerPlugin {
     pub image: String,

@@ -1,8 +1,8 @@
-use url::Url;
-use tar::Builder;
 use pipeline::{Command, CommandId};
+use tar::Builder;
+use url::Url;
 
-use super::{Plugin, Paths, Environment};
+use super::{Environment, Paths, Plugin};
 
 #[derive(Debug)]
 pub enum Error {

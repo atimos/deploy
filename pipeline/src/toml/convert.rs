@@ -1,5 +1,5 @@
-use crate::pipeline as p;
 use super::*;
+use crate::pipeline as p;
 
 impl Into<p::Pipeline> for Pipeline {
     fn into(self) -> p::Pipeline {
@@ -32,7 +32,11 @@ impl Into<p::Commands> for Commands {
                 mode: p::ExecutionMode::SequenceStopOnError,
                 commands: cmds.into_iter().map(Into::into).collect(),
             },
-            Commands::ConfiguredList { commands, mode, run_on_status } => p::Commands::Multiple {
+            Commands::ConfiguredList {
+                commands,
+                mode,
+                run_on_status,
+            } => p::Commands::Multiple {
                 mode: mode.into(),
                 commands: commands.into_iter().map(Into::into).collect(),
                 run_on_status: run_on_status.into_iter().map(Into::into).collect(),
@@ -64,9 +68,39 @@ impl Into<p::Status> for Status {
 impl Into<p::Command> for Command {
     fn into(self) -> p::Command {
         match self {
-            Self::Unit { id, name, args } => p::Command::Unit { id, name, args: args.map(Into::into) },
-            Self::Wasm { id, uri, command, args } => p::Command::Wasm { id, uri, command, args: args.map(Into::into) },
-            Self::Oci { id, repository, image, command, raw_command, args, force_rebuild } => p::Command::Oci { id, repository, raw_command, image, command, args: args.map(Into::into), force_rebuild },
+            Self::Unit { id, name, args } => p::Command::Unit {
+                id,
+                name,
+                args: args.map(Into::into),
+            },
+            Self::Wasm {
+                id,
+                uri,
+                command,
+                args,
+            } => p::Command::Wasm {
+                id,
+                uri,
+                command,
+                args: args.map(Into::into),
+            },
+            Self::Oci {
+                id,
+                repository,
+                image,
+                command,
+                raw_command,
+                args,
+                force_rebuild,
+            } => p::Command::Oci {
+                id,
+                repository,
+                raw_command,
+                image,
+                command,
+                args: args.map(Into::into),
+                force_rebuild,
+            },
         }
     }
 }

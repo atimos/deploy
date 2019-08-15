@@ -14,11 +14,11 @@ pub fn check(pipeline: Pipeline) -> Result<Pipeline, Error> {
 }
 
 fn check_steps(steps: &Vec<Unit>, units: &Units) -> Result<(), Error> {
-    Ok(())
+    Err(Error::UnitRecursion(Vec::new()))
 }
 
 fn check_units(units: &Units) -> Result<(), Error> {
-    Ok(())
+    Err(Error::UnitRecursion(Vec::new()))
 }
 //
 // fn check_step_commands<'a>(units: &'a InlineUnits) -> impl Fn(&'a Step) -> Result<(), Error> + 'a {

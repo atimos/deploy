@@ -1,6 +1,6 @@
-use uuid::Uuid;
+use pipeline::{Command, Commands, Pipeline, Unit};
 use std::path::PathBuf;
-use pipeline::{Pipeline, Unit, Commands, Command};
+use uuid::Uuid;
 
 #[derive(Default)]
 pub struct Runner {

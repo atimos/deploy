@@ -21,7 +21,8 @@ enum Cli {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
     },
-    #[structopt(name = "run")] Run {
+    #[structopt(name = "run")]
+    Run {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
     },
@@ -50,7 +51,9 @@ fn print_pipeline(path: PathBuf, verbose: bool) -> Result {
                 None => println!("Step {}", idx),
             }
         }
-    } Ok(()) }
+    }
+    Ok(())
+}
 
 fn check_pipeline(path: PathBuf) -> Result {
     from_toml(&read(path)?)?;
