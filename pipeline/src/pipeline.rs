@@ -1,54 +1,68 @@
 use super::Url;
-use uuid::Uuid;
 use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    pub steps: Vec<Step>,
-    pub inline: HashMap<String, Inline>,
+    pub steps: Vec<Unit>,
+    pub units: HashMap<String, Unit>,
 }
 
 #[derive(Debug)]
-pub struct Step {
-    pub description: String,
-    pub run: Commands,
-    pub run_before: Option<Command>,
-    pub run_after: Option<Command>,
-    pub run_after_success: Option<Command>,
-    pub run_after_error: Option<Command>,
-}
-
-#[derive(Debug)]
-pub struct Command {
-    pub id: CommandId,
-    pub uri: Url,
-    pub args: HashMap<String, Argument>,
-}
-
-#[derive(Debug)]
-pub enum CommandId {
-    Uuid(Uuid),
-    Named(String),
+pub struct Unit {
+    pub description: Option<String>,
+    pub commands: Commands,
 }
 
 #[derive(Debug)]
 pub enum Commands {
-    SequenceStopOnError(Vec<Command>),
-    SequenceRunAll(Vec<Command>),
-    Parallel(Vec<Command>),
+    Single(Command),
+    Multiple {
+        commands: Vec<Commands>,
+        mode: ExecutionMode,
+        run_on_status: Vec<Status>,
+    }
 }
 
 #[derive(Debug)]
-pub struct Inline {
-    pub run: Commands,
-    pub run_before: Option<Command>,
-    pub run_after: Option<Command>,
-    pub run_after_success: Option<Command>,
-    pub run_after_error: Option<Command>,
+pub enum ExecutionMode {
+    SequenceStopOnError,
+    SequenceRunAll,
+    Parallel,
 }
 
 #[derive(Debug)]
-pub enum Argument {
+pub enum Status {
+    Error,
+    Success,
+    Abort,
+}
+
+#[derive(Debug)]
+pub enum Command {
+    Unit {
+        id: Option<String>,
+        name: String,
+        args: Option<Arguments>,
+    },
+    Wasm {
+        id: Option<String>,
+        uri: Url,
+        command: String,
+        args: Option<Arguments>,
+    },
+    Oci {
+        id: Option<String>,
+        repository: String,
+        image: String,
+        command: String,
+        raw_command: bool,
+        force_rebuild: bool,
+        args: Option<Arguments>,
+    },
+}
+
+#[derive(Debug)]
+pub enum Arguments {
     Map(HashMap<String, String>),
     List(Vec<String>),
     String(String),

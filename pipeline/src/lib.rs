@@ -1,10 +1,9 @@
-mod check;
-mod data;
 mod error;
-mod map;
+mod toml;
 mod pipeline;
+mod check;
 
-use data::Pipeline as PipelineData;
+use self::toml::Pipeline as TomlPipeline;
 
 pub use error::*;
 pub use pipeline::*;
@@ -12,6 +11,5 @@ pub use pipeline::*;
 pub type Url = url::Url;
 
 pub fn from_toml(content: &[u8]) -> Result<Pipeline> {
-    let pipeline = check::check(toml::from_slice::<PipelineData>(content)?)?;
-    Ok(Pipeline::from(pipeline))
+    check::check(TomlPipeline::into(::toml::from_slice::<TomlPipeline>(content)?))
 }

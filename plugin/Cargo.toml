@@ -9,3 +9,5 @@ edition = "2018"
 [dependencies]
 url = "2.0.0"
 pipeline = { path = "../pipeline" }
+reqwest = "0.9.19"
+tar = "0.4.26"

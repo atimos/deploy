@@ -1,45 +1,68 @@
 steps:
-    - description: "Run checks, unit tests and integration tests"
-      mode: "parallel"
-      run-before: {uri: "inline://install-dev"}
-      run:
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:unit"]}}
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:integration"]}}
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["check:style"]}}
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["check:mess"]}}
+    - description: Setup environment
+      commands:
+          type: wasm
+          uri: 'core://env'
+          command: set
+          args:
+              dockerhub: 'https://registry.hub.docker.com'
 
-    - description: "Build docker images"
-      run-before: {uri: "inline://install-no-dev"}
-      mode: "parallel"
-      run:
-          - {uri: "plugin://docker.core#build", args: {image: "Dockerfile.fpm"}}
-          - {uri: "plugin://docker.core#build", args: {image: "Dockerfile.nginx"}}
+    - description: Run checks, unit tests and integration tests
+      commands:
+          - {type: unit, name: docker-install, args: {dev-mode: dev}}
+          - mode: parallel
+            commands:
+                - {type: oci, repository: '{{env.dockerhub}}', image: composer, command: composer, args: 'test:unit'}
+                - {type: oci, repository: '{{env.dockerhub}}', image: composer, command: composer, args: 'test:integration'}
+                - {type: oci, repository: '{{env.dockerhub}}', image: composer, command: composer, args: 'check:style'}
+                - {type: oci, repository: '{{env.dockerhub}}', image: composer, command: composer, args: 'check:mess'}
 
-    - description: "Run system and integration tests"
-      run-before: {uri: "inline://install-dev"}
-      run:
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:system"]}}
-          - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["test:e2e"]}}
+    - description: Build docker images
+      commands:
+          - mode: parallel
+            commands:
+                - {type: wasm, uri: 'core://env', command: set_local, args: {tag: '{{env.docker_repository}}:{{env.service_name}}/{{env.build_number}}'}}
+                - {type: unit, name: docker-install, args: {dev-mode: no-dev}}
+          - mode: parallel
+            commands:
+                - {type: unit, name: build-docker", args: {image: Dockerfile.fpm, tag: '{{env.tag}}/fpm'}}
+                - {type: unit, name: build-docker", args: {image: Dockerfile.nginx, tag: '{{env.tag}}/nginx'}}
 
-    - description: "Collect test results"
-      mode: "parallel"
-      run:
-          - {uri: "plugin://report.core#collect", args: {output: "test/report/php/report.xml", type: "junit"}}
-          - {uri: "plugin://report.core#collect", args: {output: "test/report/php/clover.xml", type: "clover"}}
+    - description: Run system and integration tests
+      commands:
+          - {type: unit, name: docker-install, args: {dev-mode: dev}}
+          - {type: oci, repository: "{{env.dockerhub}}", image: composer, command: composer, args: 'test:system'}
+          - {type: oci, repository: "{{env.dockerhub}}", image: composer, command: composer, args: 'test:e2e'}
 
-inline:
-    install-dev:
-        description: "Install packages --dev"
-        run:
-            - {uri: "inline://install", args: {env: "--dev"}}
+    - description: Collect test results
+      commands:
+          mode: parallel,
+          run-on-status: [abort, error, success],
+          commands:
+              - {type: wasm, uri: 'core://report', command: publish, args: {input: test/report/php/report.xml, type: junit}}
+              - {type: wasm, uri: 'core://report', command: publish, args: {input: test/report/php/clover.xml, type: clover}}
 
-    install-no-dev:
-        description: "Install packages --no-dev"
-        run:
-            - {uri: "inline://install", args: {env: "--no-dev"}}
-
-    install:
+units:
+    build-image:
         args:
-            - {name: "env"}
-        run:
-            - {uri: "plugin://shell.core#exec", args: {cmd: "composer", args: ["install", "{{args.env}}"]}}
+            - name: image
+            - name: tag
+        commands: 
+            type: oci
+            repository: '{{env.dockerhub}}'
+            image: docker
+            raw-command: true
+            command: 'build -f {{args.image}} -t {{args.tag}}; && docker push {{args.tag}}'
+
+    docker-install:
+        description: "Install packages: {{args.dev-mode}}"
+        args:
+            - name: dev-mode
+        commands:
+            type: oci
+            repository: '{{env.dockerhub}}'
+            image: composer
+            command: composer
+            args:
+                - install
+                - '--{{args.dev-mode}}'

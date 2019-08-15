@@ -21,8 +21,7 @@ enum Cli {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
     },
-    #[structopt(name = "run")]
-    Run {
+    #[structopt(name = "run")] Run {
         #[structopt(default_value = "Pipeline.toml")]
         path: PathBuf,
     },
@@ -45,8 +44,11 @@ fn print_pipeline(path: PathBuf, verbose: bool) -> Result {
     if verbose {
         dbg!(pipeline);
     } else {
-        for step in pipeline.steps {
-            println!("Step: {}", step.description);
+        for (idx, step) in pipeline.steps.iter().enumerate() {
+            match &step.description {
+                Some(description) => println!("Step {}: {}", idx + 1, description),
+                None => println!("Step {}", idx),
+            }
         }
     } Ok(()) }
 
