@@ -1,7 +1,6 @@
 mod convert;
 
 use std::collections::HashMap;
-use url::Url;
 
 use serde::Deserialize;
 
@@ -12,15 +11,14 @@ pub struct Pipeline {
     pub units: HashMap<String, Unit>,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct Unit {
     pub description: Option<String>,
-    #[serde(default)]
-    pub args: Vec<ArgumentKey>,
+    pub args: Option<Vec<ArgumentKey>>,
     pub commands: Commands,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Commands {
     Single(Command),
@@ -34,7 +32,7 @@ pub enum Commands {
     List(Vec<Commands>),
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 #[serde(tag = "type")]
 pub enum Command {
     #[serde(rename = "unit")]
@@ -46,7 +44,7 @@ pub enum Command {
     #[serde(rename = "wasm")]
     Wasm {
         id: Option<String>,
-        uri: Url,
+        uri: String,
         command: String,
         args: Option<Arguments>,
     },
@@ -66,7 +64,7 @@ pub enum Command {
     },
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 #[serde(untagged)]
 pub enum Arguments {
     Map(HashMap<String, String>),
@@ -74,12 +72,12 @@ pub enum Arguments {
     String(String),
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub struct ArgumentKey {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub enum Status {
     #[serde(rename = "error")]
     Error,
@@ -89,7 +87,7 @@ pub enum Status {
     Abort,
 }
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Deserialize)]
 pub enum ExecutionMode {
     #[serde(rename = "sequence-stop-on-error")]
     SequenceStopOnError,

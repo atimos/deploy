@@ -1,4 +1,3 @@
-use super::Url;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -11,6 +10,12 @@ pub struct Pipeline {
 pub struct Unit {
     pub description: Option<String>,
     pub commands: Commands,
+    pub args: Option<Vec<ArgumentKey>>,
+}
+
+#[derive(Debug)]
+pub struct ArgumentKey {
+    pub name: String,
 }
 
 #[derive(Debug)]
@@ -46,7 +51,7 @@ pub enum Command {
     },
     Wasm {
         id: Option<String>,
-        uri: Url,
+        uri: String,
         command: String,
         args: Option<Arguments>,
     },

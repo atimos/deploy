@@ -25,8 +25,8 @@ steps:
                 - {type: unit, name: docker-install, args: {dev-mode: no-dev}}
           - mode: parallel
             commands:
-                - {type: unit, name: build-docker", args: {image: Dockerfile.fpm, tag: '{{env.tag}}/fpm'}}
-                - {type: unit, name: build-docker", args: {image: Dockerfile.nginx, tag: '{{env.tag}}/nginx'}}
+                - {type: unit, name: build-image, args: {image: Dockerfile.fpm, tag: '{{env.tag}}/fpm'}}
+                - {type: unit, name: build-image, args: {image: Dockerfile.nginx, tag: '{{env.tag}}/nginx'}}
 
     - description: Run system and integration tests
       commands:

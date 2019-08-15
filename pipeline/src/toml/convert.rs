@@ -18,8 +18,17 @@ impl Into<p::Unit> for Unit {
     fn into(self) -> p::Unit {
         p::Unit {
             description: self.description,
-            commands: Into::into(self.commands),
+            commands: self.commands.into(),
+            args: self
+                .args
+                .map(|args| args.into_iter().map(Into::into).collect()),
         }
+    }
+}
+
+impl Into<p::ArgumentKey> for ArgumentKey {
+    fn into(self) -> p::ArgumentKey {
+        p::ArgumentKey { name: self.name }
     }
 }
 

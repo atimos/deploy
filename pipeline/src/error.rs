@@ -1,36 +1,36 @@
 use toml::de::Error as TomlError;
 
-use super::Url;
-
 pub type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug)]
 pub enum Error {
     Toml(TomlError),
-    DomainMissing(Url),
-    UnitNotFound(Url),
-    UnitRecursion(Vec<Url>),
+    UnitNotFound(String),
+    UnitRecursion(Vec<String>),
     ArgumentMissing(String),
+    ArgumentsMissing,
     UnexpectedArgument(String),
+    UnexpectedArguments,
+    InvalidArgumentsType(String),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Toml(err) => write!(f, "{}", err),
-            Self::DomainMissing(uri) => write!(f, "Command uri \"{}\" is missing domain ", uri),
             Self::UnitNotFound(uri) => write!(f, "Could not find unit \"{}\"", uri),
-            Self::UnitRecursion(uri_list) => write!(
-                f,
-                "Recursion found in {}",
-                uri_list
-                    .iter()
-                    .map(Url::to_string)
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            Self::UnitRecursion(name_list) => {
+                write!(f, "Recursion found in {}", name_list.join(" -> "))
+            }
             Self::ArgumentMissing(arg) => write!(f, "Argument \"{}\" is missing", arg),
+            Self::ArgumentsMissing => write!(f, "Unit requires arguments"),
             Self::UnexpectedArgument(arg) => write!(f, "Unexpected argument \"{}\"", arg),
+            Self::UnexpectedArguments => write!(f, "Unit does not expect any arguments"),
+            Self::InvalidArgumentsType(expected) => write!(
+                f,
+                "Type of arguments is not valid, expected \"{}\"",
+                expected
+            ),
         }
     }
 }

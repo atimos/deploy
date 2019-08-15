@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use super::{
     error::Error,
-    pipeline::{Pipeline, Unit},
+    pipeline::{ArgumentKey, Arguments, Command, Commands, Pipeline, Unit},
 };
 
 type Units = HashMap<String, Unit>;
@@ -14,85 +14,81 @@ pub fn check(pipeline: Pipeline) -> Result<Pipeline, Error> {
 }
 
 fn check_steps(steps: &Vec<Unit>, units: &Units) -> Result<(), Error> {
-    Err(Error::UnitRecursion(Vec::new()))
+    steps
+        .iter()
+        .map(|step| check_cmds(&step.commands, units, Vec::new()))
+        .collect()
 }
 
 fn check_units(units: &Units) -> Result<(), Error> {
-    Err(Error::UnitRecursion(Vec::new()))
+    units
+        .iter()
+        .map(|(_, unit)| check_cmds(&unit.commands, units, Vec::new()))
+        .collect()
 }
-//
-// fn check_step_commands<'a>(units: &'a InlineUnits) -> impl Fn(&'a Step) -> Result<(), Error> + 'a {
-//     move |step| {
-//         step.run
-//             .iter()
-//             .map(|cmd| check_cmd(cmd, units, Vec::new()))
-//             .collect::<Result<(), Error>>()?;
-//         step.run_before
-//             .as_ref()
-//             .map(|cmd| check_cmd(cmd, units, Vec::new()))
-//             .transpose()?;
-//         step.run_after
-//             .as_ref()
-//             .map(|cmd| check_cmd(cmd, units, Vec::new()))
-//             .transpose()?;
-//         step.run_after_error
-//             .as_ref()
-//             .map(|cmd| check_cmd(cmd, units, Vec::new()))
-//             .transpose()?;
-//         step.run_after_success
-//             .as_ref()
-//             .map(|cmd| check_cmd(cmd, units, Vec::new()))
-//             .transpose()?;
-//         Ok(())
-//     }
-// }
-//
-// fn check_unit<'a>(unit: &Inline, units: &'a InlineUnits, used: Vec<Url>) -> Result<(), Error> {
-//     unit.run
-//         .iter()
-//         .map(|cmd| check_cmd(cmd, units, used.clone()))
-//         .collect::<Result<(), Error>>()?;
-//     unit.run_before
-//         .as_ref()
-//         .map(|cmd| check_cmd(cmd, units, used.clone()))
-//         .transpose()?;
-//     unit.run_after
-//         .as_ref()
-//         .map(|cmd| check_cmd(cmd, units, used.clone()))
-//         .transpose()?;
-//     unit.run_after_error
-//         .as_ref()
-//         .map(|cmd| check_cmd(cmd, units, used.clone()))
-//         .transpose()?;
-//     unit.run_after_success
-//         .as_ref()
-//         .map(|cmd| check_cmd(cmd, units, used.clone()))
-//         .transpose()?;
-//     Ok(())
-// }
-//
-// fn check_cmd(cmd: &Command, units: &InlineUnits, mut used: Vec<Url>) -> Result<(), Error> {
-//     let domain = cmd
-//         .uri
-//         .domain()
-//         .ok_or_else(|| Error::DomainMissing(cmd.uri.to_owned()))?;
-//
-//     if cmd.uri.scheme() != "inline" {
-//         return Ok(());
-//     }
-//
-//     if !used.contains(&cmd.uri) {
-//         let unit = units
-//             .get(domain)
-//             .ok_or_else(|| Error::UnitNotFound(cmd.uri.clone()))?;
-//
-//         used.push(cmd.uri.clone());
-//
-//         check_unit(unit, units, used)?;
-//
-//         Ok(())
-//     } else {
-//         used.push(cmd.uri.clone());
-//         Err(Error::UnitRecursion(used))
-//     }
-// }
+
+fn check_cmds(cmd: &Commands, units: &Units, used: Vec<String>) -> Result<(), Error> {
+    match cmd {
+        Commands::Single(cmd) => check_cmd(cmd, units, used),
+        Commands::Multiple { commands, .. } => commands
+            .iter()
+            .map(|cmds| check_cmds(cmds, units, used.clone()))
+            .collect(),
+    }
+}
+
+fn check_cmd(cmd: &Command, units: &Units, mut found: Vec<String>) -> Result<(), Error> {
+    match cmd {
+        Command::Oci { .. } => Ok(()),
+        Command::Wasm { .. } => Ok(()),
+        Command::Unit { name, args, .. } => {
+            if found.contains(name) {
+                found.push(name.to_owned());
+                return Err(Error::UnitRecursion(found));
+            }
+            if let Some(unit) = units.get(name) {
+                found.push(name.to_owned());
+                check_args(args, &unit.args)?;
+                check_cmds(&unit.commands, units, found)
+            } else {
+                Err(Error::UnitNotFound(name.to_owned()))
+            }
+        }
+    }
+}
+
+fn check_args(
+    cmd_args: &Option<Arguments>,
+    unit_args: &Option<Vec<ArgumentKey>>,
+) -> Result<(), Error> {
+    match cmd_args {
+        Some(Arguments::Map(cmd_args)) => {
+            if let Some(unit_args) = unit_args {
+                for ArgumentKey { name } in unit_args {
+                    if !cmd_args.contains_key(name) {
+                        return Err(Error::ArgumentMissing(name.to_owned()));
+                    }
+                }
+                'args: for arg_name in cmd_args.keys() {
+                    for ArgumentKey { name } in unit_args {
+                        if name == arg_name {
+                            continue 'args;
+                        }
+                    }
+                    return Err(Error::UnexpectedArgument(arg_name.to_owned()));
+                }
+                Ok(())
+            } else {
+                Err(Error::UnexpectedArguments)
+            }
+        }
+        None => {
+            if unit_args.is_none() {
+                Ok(())
+            } else {
+                Err(Error::ArgumentsMissing)
+            }
+        }
+        _ => Err(Error::InvalidArgumentsType("map".into())),
+    }
+}
