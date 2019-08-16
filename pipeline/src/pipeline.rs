@@ -48,7 +48,7 @@ pub enum Status {
 pub enum Command {
     Unit {
         id: String,
-        args: Option<Arguments>,
+        args: Option<HashMap<String, String>>,
     },
     Wasm {
         uri: String,

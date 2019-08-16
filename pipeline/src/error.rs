@@ -11,7 +11,7 @@ pub enum Error {
     ArgumentsMissing,
     UnexpectedArgument(String),
     UnexpectedArguments,
-    InvalidArgumentsType(String),
+    Convertion(ConvertionError)
 }
 
 impl std::fmt::Display for Error {
@@ -26,11 +26,7 @@ impl std::fmt::Display for Error {
             Self::ArgumentsMissing => write!(f, "Unit requires arguments"),
             Self::UnexpectedArgument(arg) => write!(f, "Unexpected argument \"{}\"", arg),
             Self::UnexpectedArguments => write!(f, "Unit does not expect any arguments"),
-            Self::InvalidArgumentsType(expected) => write!(
-                f,
-                "Type of arguments is not valid, expected \"{}\"",
-                expected
-            ),
+            Self::Convertion(err) => write!(f, "{}", err)
         }
     }
 }
@@ -39,6 +35,7 @@ impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
             Self::Toml(err) => Some(err),
+            Self::Convertion(err) => Some(err),
             _ => None,
         }
     }
@@ -47,5 +44,31 @@ impl std::error::Error for Error {
 impl From<TomlError> for Error {
     fn from(err: TomlError) -> Self {
         Self::Toml(err)
+    }
+}
+
+impl From<ConvertionError> for Error {
+    fn from(err: ConvertionError) -> Self {
+        Self::Convertion(err)
+    }
+}
+
+#[derive(Debug)]
+pub enum ConvertionError {
+    InvalidArgumentsType(&'static str, &'static str),
+}
+impl std::error::Error for ConvertionError {
+}
+
+impl std::fmt::Display for ConvertionError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidArgumentsType(expected, actual) => write!(
+                f,
+                "Type \"{}\" of arguments is not valid, expected \"{}\"",
+                actual,
+                expected,
+            ),
+        }
     }
 }

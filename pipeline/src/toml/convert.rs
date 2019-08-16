@@ -1,28 +1,35 @@
+use std::convert::TryInto;
 use super::*;
-use crate::pipeline as p;
+use crate::{error::ConvertionError as Error, pipeline as p};
 
-impl Into<p::Pipeline> for Pipeline {
-    fn into(self) -> p::Pipeline {
-        p::Pipeline {
-            steps: self.steps.into_iter().map(Into::into).collect(),
+type Result<T> = std::result::Result<T, Error>;
+
+impl TryInto<p::Pipeline> for Pipeline {
+    type Error = Error;
+
+    fn try_into(self) -> Result<p::Pipeline> {
+        Ok(p::Pipeline {
+            steps: self.steps.into_iter().map(TryInto::try_into).collect::<Result<Vec<Unit>>>()?,
             units: self
                 .units
                 .into_iter()
                 .map(|(id, unit)| (id, unit.into()))
-                .collect(),
-        }
+                .collect()?,
+        })
     }
 }
 
-impl Into<p::Unit> for Unit {
-    fn into(self) -> p::Unit {
-        p::Unit {
+impl TryInto<p::Unit> for Unit {
+    type Error = Error;
+
+    fn try_into(self) -> Result<p::Unit> {
+        Ok(p::Unit {
             description: self.description,
-            commands: self.commands.into(),
+            commands: self.commands.into()?,
             args: self
                 .args
                 .map(|args| args.into_iter().map(Into::into).collect()),
-        }
+        })
     }
 }
 
@@ -32,14 +39,15 @@ impl Into<p::ArgumentKey> for ArgumentKey {
     }
 }
 
-impl Into<p::Commands> for Commands {
-    fn into(self) -> p::Commands {
-        match self {
-            Commands::Single(cmd) => p::Commands::Single(cmd.into()),
+impl TryInto<p::Commands> for Commands {
+    type Error = Error;
+    fn try_into(self) -> Result<p::Commands> {
+        Ok(match self {
+            Commands::Single(cmd) => p::Commands::Single(cmd.into()?),
             Commands::List(cmds) => p::Commands::Multiple {
                 run_on_status: vec![p::Status::Success],
                 mode: p::ExecutionMode::SequenceStopOnError,
-                commands: cmds.into_iter().map(Into::into).collect(),
+                commands: cmds.into_iter().map(Into::into).collect()?,
             },
             Commands::ConfiguredList {
                 commands,
@@ -47,10 +55,10 @@ impl Into<p::Commands> for Commands {
                 run_on_status,
             } => p::Commands::Multiple {
                 mode: mode.into(),
-                commands: commands.into_iter().map(Into::into).collect(),
+                commands: commands.into_iter().map(Into::into).collect()?,
                 run_on_status: run_on_status.into_iter().map(Into::into).collect(),
             },
-        }
+        })
     }
 }
 
@@ -74,12 +82,14 @@ impl Into<p::Status> for Status {
     }
 }
 
-impl Into<p::Command> for Command {
-    fn into(self) -> p::Command {
-        match self {
+impl TryInto<p::Command> for Command {
+    type Error = Error;
+
+    fn try_into(self) -> Result<p::Command> {
+        Ok(match self {
             Self::Unit { id, args } => p::Command::Unit {
                 id,
-                args: args.map(Into::into),
+                args: args.map(TryInto::try_into).transpose()?,
             },
             Self::Wasm { uri, command, args } => p::Command::Wasm {
                 uri,
@@ -101,7 +111,7 @@ impl Into<p::Command> for Command {
                 args: args.map(Into::into),
                 force_rebuild,
             },
-        }
+        })
     }
 }
 
@@ -111,6 +121,18 @@ impl Into<p::Arguments> for Arguments {
             Self::Map(map) => p::Arguments::Map(map.to_owned()),
             Self::List(list) => p::Arguments::List(list.to_owned()),
             Self::String(string) => p::Arguments::String(string.to_owned()),
+        }
+    }
+}
+
+impl TryInto<HashMap<String, String>> for Arguments {
+    type Error = Error;
+
+    fn try_into(self) -> Result<HashMap<String, String>> {
+        match self {
+            Arguments::String(_) => Err(Error::InvalidArgumentsType("argument string", "argument map")),
+            Arguments::List(_) => Err(Error::InvalidArgumentsType("argument list", "argument map")),
+            Arguments::Map(args) => Ok(args),
         }
     }
 }
