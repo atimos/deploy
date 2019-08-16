@@ -1,0 +1,28 @@
+Running: Step 0: Some("Setup environment")
+WASM: [0810ce2e-e004-43b6-934d-b87173a7811a]
+Running: Step 1: Some("Run checks, unit tests and integration tests")
+UNIT: composer-install - Some("Install packages: {{args.dev-mode}}") : 54d97d9d-b28b-44fd-b53a-b561236bdf39
+UNIT: composer-install2 - Some("Install packages: {{args.dev-mode}}") : 6aec2cbf-4431-4384-8d17-b80e99a16076
+OCI: [54d97d9d-b28b-44fd-b53a-b561236bdf39, 6aec2cbf-4431-4384-8d17-b80e99a16076, 542a1256-a590-4763-b6fa-f24edc40e323]
+OCI: [73ff705b-853b-4223-bc2f-fba52211cbf1]
+OCI: [9745fd5e-51e8-43ad-8281-b3ebd3f1c4e4]
+OCI: [690871e2-1a7a-451f-b275-b640d36a17ea]
+OCI: [44c674cc-2aab-4133-9475-0e99582f4c9b]
+Running: Step 2: Some("Build docker images")
+WASM: [afc77568-5fd6-4016-9676-8c3afa16c7cf]
+UNIT: composer-install - Some("Install packages: {{args.dev-mode}}") : 01526024-b1cd-4a83-a451-c55a786e51e0
+UNIT: composer-install2 - Some("Install packages: {{args.dev-mode}}") : 6aec2cbf-4431-4384-8d17-b80e99a16076
+OCI: [01526024-b1cd-4a83-a451-c55a786e51e0, 6aec2cbf-4431-4384-8d17-b80e99a16076, 542a1256-a590-4763-b6fa-f24edc40e323]
+UNIT: build-image - None : f4fa9ac1-7912-4a61-af8d-b9330355d552
+OCI: [f4fa9ac1-7912-4a61-af8d-b9330355d552, dcdd5729-4c5d-4642-88a4-64c1b5bcc075]
+UNIT: build-image - None : e9c6d789-6815-4d1b-979f-0ebe9bdcf7be
+OCI: [e9c6d789-6815-4d1b-979f-0ebe9bdcf7be, dcdd5729-4c5d-4642-88a4-64c1b5bcc075]
+Running: Step 3: Some("Run system and integration tests")
+UNIT: composer-install - Some("Install packages: {{args.dev-mode}}") : c14c5746-f38b-47fc-8629-4bd624f4a8c2
+UNIT: composer-install2 - Some("Install packages: {{args.dev-mode}}") : 6aec2cbf-4431-4384-8d17-b80e99a16076
+OCI: [c14c5746-f38b-47fc-8629-4bd624f4a8c2, 6aec2cbf-4431-4384-8d17-b80e99a16076, 542a1256-a590-4763-b6fa-f24edc40e323]
+OCI: [4f01c0a4-b29a-4cf1-ad26-be3208694c5d]
+OCI: [9bf3a043-0982-432b-baf0-5bf7d384398a]
+Running: Step 4: Some("Collect test results")
+WASM: [74f8caaf-3d02-4897-85bc-81a9a8711f26]
+WASM: [0fb7ba68-0050-4e25-b0d3-0fe29c6e8a63]

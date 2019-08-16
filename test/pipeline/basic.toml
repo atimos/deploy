@@ -1,16 +1,12 @@
 [[steps]]
-    description="Setup environment"
-    commands = {type = "wasm", uri = "core://env", command = "set", args = {dockerhub = "https://registry.hub.docker.com"}}
-
-[[steps]]
     description="Run checks, unit tests and integration tests"
     commands = [
-        {type = "unit", id = "docker-install", args = {dev-mode = "dev"}},
+        {type = "unit", id = "composer-install", args = {dev-mode = "dev"}},
         {mode = "parallel", commands = [
-            {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:unit"},
-            {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:integration"},
-            {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "check:style"},
-            {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "check:mess"},
+            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:unit"},
+            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:integration"},
+            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "check:style"},
+            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "check:mess"},
         ]},
     ]
 
@@ -19,7 +15,7 @@
     commands = [
         {mode = "parallel", commands = [
             {type = "wasm", uri = "core://env", command = "set_local", args = {tag = "{{env.docker_repository}}:{{env.service_name}}/{{env.build_number}}"}},
-            {type = "unit", id = "docker-install", args = {dev-mode = "no-dev"}},
+            {type = "unit", id = "composer-install", args = {dev-mode = "no-dev"}},
         ]},
         {mode = "parallel", commands = [
             {type = "unit", id = "build-image", args = {image = "Dockerfile.fpm", tag = "{{env.tag}}/fpm"}},
@@ -30,9 +26,9 @@
 [[steps]]
     description="Run system and integration tests"
     commands = [
-        {type = "unit", id = "docker-install", args = {dev-mode = "dev"}},
-        {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:system"},
-        {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = "test:e2e"},
+        {type = "unit", id = "composer-install", args = {dev-mode = "dev"}},
+        {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:system"},
+        {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:e2e"},
     ]
 
 [[steps]]
@@ -44,9 +40,12 @@
 
 [units.build-image]
     args = [{name = "image"}, {name = "tag"}]
-    commands = {type = "oci", repository = "{{env.dockerhub}}", image = "docker", raw-command = true, command = "build -f {{args.image}} -t {{args.tag}}; && docker push {{args.tag}}"}
+    commands = {type = "oci", repository = "https://registry.hub.docker.com", image = "docker", commands = [
+        {command = "build", args = {-f = "{{args.image}}", -t = "{{args.tag}}"}},
+        {command = "push", args = "{{args.tag}}"},
+    ]}
 
-[units.docker-install]
+[units.composer-install]
     args= [{name = "dev-mode"}]
-    description="Install packages: {{args.dev-mode}}"
-    commands = {type = "oci", repository = "{{env.dockerhub}}", image = "composer", command = "composer", args = ["install", "--{{args.dev-mode}}"]}
+    description="Install packages"
+    commands = {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = ["install", "--{{args.dev-mode}}"]}

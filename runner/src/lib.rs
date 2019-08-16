@@ -6,11 +6,14 @@ mod wasm;
 use pipeline::Pipeline;
 use std::path::PathBuf;
 use uuid::Uuid;
+use pipeline::InstanceId;
 
 #[derive(Default)]
 pub struct Runner {
     jobs: Vec<Job>,
 }
+
+type InstanceIds<'a> = Vec<&'a InstanceId>;
 
 impl Runner {
     pub fn add(&mut self, pipeline: Pipeline) {
@@ -38,10 +41,22 @@ pub struct Job {
 
 impl Job {
     pub fn run(&mut self) {
-        for (idx, unit) in self.pipeline.steps.iter().enumerate() {
-            println!("Running: Step {}: {:?}", idx, unit.description);
-            unit::run(unit, &None, &self.pipeline.units, &mut Default::default());
-            println!("");
-        }
+        let mut env = environment::Environment {
+            status: environment::Status::Success,
+            config: None,
+            unit: None,
+            instance: None,
+            workspace: PathBuf::from("./deploy"),
+        };
+
+        let scripts = wasm::prepare(&self.pipeline);
+        let containers = oci::prepare(&self.pipeline);
+        dbg!(scripts);
+        dbg!(containers);
+
+        // for (idx, unit) in self.pipeline.steps.iter().enumerate() {
+        //     println!("Running: Step {}: {:?}", idx, unit.description);
+        //     unit::run(unit, &None, &self.pipeline.units, &mut env, InstanceIds::new());
+        // }
     }
 }

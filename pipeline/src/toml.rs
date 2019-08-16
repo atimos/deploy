@@ -1,8 +1,14 @@
 mod convert;
+pub mod error;
 
+use std::convert::TryInto;
 use std::collections::HashMap;
 
 use serde::Deserialize;
+
+pub fn parse(content: &[u8]) -> Result<crate::pipeline::Pipeline, error::Error> {
+    Ok(toml::from_slice::<Pipeline>(content)?.try_into()?)
+}
 
 #[derive(Debug, Deserialize)]
 pub struct Pipeline {
@@ -37,25 +43,33 @@ pub enum Commands {
 pub enum Command {
     #[serde(rename = "unit")]
     Unit { id: String, args: Option<Arguments> },
+    #[serde(rename = "if")]
+    If {
+        condition: Box<Commands>,
+        then: Box<Commands>,
+        othewise: Option<Box<Commands>>,
+    },
     #[serde(rename = "wasm")]
     Wasm {
         uri: String,
-        command: String,
-        args: Option<Arguments>,
+        #[serde(flatten)]
+        command: Option<ExternalCommand>,
+        commands: Option<Vec<ExternalCommand>>,
     },
     #[serde(rename = "oci")]
     Oci {
         repository: String,
         image: String,
-        command: String,
-        #[serde(rename = "raw-command")]
-        #[serde(default)]
-        raw_command: bool,
-        #[serde(rename = "force-rebuild")]
-        #[serde(default)]
-        force_rebuild: bool,
-        args: Option<Arguments>,
+        #[serde(flatten)]
+        command: Option<ExternalCommand>,
+        commands: Option<Vec<ExternalCommand>>,
     },
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ExternalCommand {
+    command: String,
+    args: Option<Arguments>,
 }
 
 #[derive(Debug, Deserialize)]

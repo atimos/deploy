@@ -1,4 +1,7 @@
 use std::collections::HashMap;
+use uuid::Uuid;
+
+pub type InstanceId = Uuid;
 
 #[derive(Debug)]
 pub struct Pipeline {
@@ -47,22 +50,32 @@ pub enum Status {
 #[derive(Debug)]
 pub enum Command {
     Unit {
+        instance_id: InstanceId,
         id: String,
         args: Option<HashMap<String, String>>,
     },
+    If {
+        condition: Box<Commands>,
+        then: Box<Commands>,
+        othewise: Option<Box<Commands>>,
+    },
     Wasm {
+        instance_id: InstanceId,
         uri: String,
-        command: String,
-        args: Option<Arguments>,
+        commands: Vec<ExternalCommand>,
     },
     Oci {
+        instance_id: InstanceId,
         repository: String,
         image: String,
-        command: String,
-        raw_command: bool,
-        force_rebuild: bool,
-        args: Option<Arguments>,
+        commands: Vec<ExternalCommand>,
     },
+}
+
+#[derive(Debug)]
+pub struct ExternalCommand {
+    pub command: String,
+    pub args: Option<Arguments>,
 }
 
 #[derive(Debug)]
