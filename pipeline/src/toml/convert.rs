@@ -1,5 +1,4 @@
 use std::convert::TryInto;
-use std::ops::Deref;
 use super::{*, error::Error};
 use crate::pipeline as p;
 
@@ -96,28 +95,28 @@ impl TryInto<p::Command> for Command {
                 id,
                 args: args.map(TryInto::try_into).transpose()?,
             },
-            Self::If { condition, then, othewise } => p::Command::If {
-                condition: Box::new(condition.deref().to_owned().into()?),
-                then: Box::new(then.deref().to_owned().into()?),
-                //othewise: othewise.map(TryInto::try_into).transpose()?,
-                othewise: None,
+            Self::If { condition, then, otherwise } => p::Command::If {
+                instance_id: p::InstanceId::new_v4(),
+                condition: Box::new((*condition).try_into()?),
+                then: Box::new((*then).try_into()?),
+                otherwise: otherwise.map(|cmds| (*cmds).try_into()).transpose()?.map(Box::new),
             },
             Self::Wasm { uri, command, commands } => p::Command::Wasm {
                 instance_id: p::InstanceId::new_v4(),
                 uri,
-                commands: map_commands(command, commands)?,
+                commands: map_external_commands(command, commands)?,
             },
             Self::Oci { repository, image, command, commands, } => p::Command::Oci {
                 instance_id: p::InstanceId::new_v4(),
                 repository,
                 image,
-                commands: map_commands(command, commands)?,
+                commands: map_external_commands(command, commands)?,
             },
         })
     }
 }
 
-fn map_commands(single: Option<ExternalCommand>, multiple: Option<Vec<ExternalCommand>>) -> Result<Vec<p::ExternalCommand>> {
+fn map_external_commands(single: Option<ExternalCommand>, multiple: Option<Vec<ExternalCommand>>) -> Result<Vec<p::ExternalCommand>> {
     let commands = match (single, multiple) {
         (Some(_), Some(_)) => return Err(Error::CommandMix),
         (None, None) => return Err(Error::NoCommandFound),

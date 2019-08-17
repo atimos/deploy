@@ -47,7 +47,7 @@ pub enum Command {
     If {
         condition: Box<Commands>,
         then: Box<Commands>,
-        othewise: Option<Box<Commands>>,
+        otherwise: Option<Box<Commands>>,
     },
     #[serde(rename = "wasm")]
     Wasm {

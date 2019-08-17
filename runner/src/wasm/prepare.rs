@@ -2,7 +2,7 @@ use super::InstanceIds;
 use super::Scripts;
 use pipeline::{Pipeline, Unit, Units, Commands, Command};
 
-type UnloadedScripts<'a> = Vec<(InstanceIds<'a>, String)>;
+type References<'a> = Vec<(InstanceIds<'a>, String)>;
 
 pub fn prepare(pipeline: &Pipeline) -> Scripts {
     let mut scripts = Vec::new();
@@ -11,15 +11,15 @@ pub fn prepare(pipeline: &Pipeline) -> Scripts {
         prepare_unit(step, &pipeline.units, InstanceIds::new(), &mut scripts);
     }
     dbg!(scripts);
-
     Scripts::default()
+
 }
 
-pub fn prepare_unit<'a>(unit: &'a Unit, units: &'a Units, instance_ids: InstanceIds<'a>, scripts: &mut UnloadedScripts<'a>) {
+pub fn prepare_unit<'a>(unit: &'a Unit, units: &'a Units, instance_ids: InstanceIds<'a>, scripts: &mut References<'a>) {
     prepare_cmds(&unit.commands, units, instance_ids, scripts);
 }
 
-fn prepare_cmds<'a>(cmds: &'a Commands, units: &'a Units, instance_ids: InstanceIds<'a>, scripts: &mut UnloadedScripts<'a>) {
+fn prepare_cmds<'a>(cmds: &'a Commands, units: &'a Units, instance_ids: InstanceIds<'a>, scripts: &mut References<'a>) {
     match cmds {
         Commands::Multiple { commands, .. } => {
             for cmd in commands {
@@ -30,7 +30,7 @@ fn prepare_cmds<'a>(cmds: &'a Commands, units: &'a Units, instance_ids: Instance
     }
 }
 
-fn prepare_cmd<'a>(cmd: &'a Command, units: &'a Units, mut instance_ids: InstanceIds<'a>, scripts: &mut UnloadedScripts<'a>) {
+fn prepare_cmd<'a>(cmd: &'a Command, units: &'a Units, mut instance_ids: InstanceIds<'a>, scripts: &mut References<'a>) {
     match cmd {
         Command::Unit { id, instance_id, .. } => {
             instance_ids.push(instance_id);

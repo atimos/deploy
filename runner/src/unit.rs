@@ -39,6 +39,15 @@ fn run_cmd<'a>(cmd: &'a Command, units: &Units, env: &mut Environment, mut insta
             println!("UNIT: {} - {:?}", id, units[id].description);
             run(&units[id], args, units, env, instance_ids);
         }
+        Command::If { condition, then, otherwise, instance_id } => {
+            println!("IF");
+            instance_ids.push(instance_id);
+            run_cmds(condition, units, env, instance_ids.clone());
+            run_cmds(then, units, env, instance_ids.clone());
+            if let Some(otherwise) = otherwise {
+                run_cmds(otherwise, units, env, instance_ids.clone());
+            }
+        }
         Command::Wasm { uri, commands, instance_id } => {
             instance_ids.push(instance_id);
             crate::wasm::run(uri, commands, env, instance_ids);

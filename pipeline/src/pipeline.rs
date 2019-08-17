@@ -49,15 +49,16 @@ pub enum Status {
 
 #[derive(Debug)]
 pub enum Command {
+    If {
+        instance_id: InstanceId,
+        condition: Box<Commands>,
+        then: Box<Commands>,
+        otherwise: Option<Box<Commands>>,
+    },
     Unit {
         instance_id: InstanceId,
         id: String,
         args: Option<HashMap<String, String>>,
-    },
-    If {
-        condition: Box<Commands>,
-        then: Box<Commands>,
-        othewise: Option<Box<Commands>>,
     },
     Wasm {
         instance_id: InstanceId,

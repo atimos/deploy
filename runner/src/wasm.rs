@@ -10,9 +10,10 @@ pub use prepare::prepare;
 #[derive(Debug, Default)]
 pub struct Scripts<'a>(HashMap<Vec<InstanceIds<'a>>, Script>);
 
+#[derive(Debug)]
 pub enum Script {
-    Loaded(Vec<u8>),
-    NotLoaded,
+    Binary(Vec<u8>),
+    Reference(String),
 }
 
 pub fn run(uri: &str, cmds: &[ExternalCommand], env: &mut Environment, instance_ids: InstanceIds) {

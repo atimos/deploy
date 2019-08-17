@@ -10,9 +10,10 @@ pub use prepare::prepare;
 #[derive(Debug, Default)]
 pub struct Containers(HashMap<String, Container>);
 
+#[derive(Debug)]
 pub enum Container {
-    Loaded(String),
-    NotLoaded,
+    Id(String),
+    Image(String, String),
 }
 
 pub fn run(repo: &str, image: &str, cmds: &[ExternalCommand], env: &mut Environment, instance_ids: InstanceIds) {

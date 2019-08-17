@@ -1,12 +1,16 @@
 [[steps]]
+    description="Setup environment"
+    commands = {type = "wasm", uri = "core://env", command = "set", args = {dockerhub = "https://registry.hub.docker.com"}}
+
+[[steps]]
     description="Run checks, unit tests and integration tests"
     commands = [
         {type = "unit", id = "composer-install", args = {dev-mode = "dev"}},
         {mode = "parallel", commands = [
-            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:unit"},
-            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "test:integration"},
-            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "check:style"},
-            {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = "check:mess"},
+            {type = "oci", repository = "{{ dockerhub }}", image = "composer", command = "composer", args = "test:unit"},
+            {type = "oci", repository = "{{ dockerhub }}", image = "composer", command = "composer", args = "test:integration"},
+            {type = "oci", repository = "{{ dockerhub }}", image = "composer", command = "composer", args = "check:style"},
+            {type = "oci", repository = "{{ dockerhub }}", image = "composer", command = "composer", args = "check:mess"},
         ]},
     ]
 

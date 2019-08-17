@@ -38,6 +38,14 @@ fn check_cmd(cmd: &Command, units: &Units, mut found: Vec<String>) -> Result<(),
     match cmd {
         Command::Oci { .. } => Ok(()),
         Command::Wasm { .. } => Ok(()),
+        Command::If { condition, then, otherwise, ..} => {
+            check_cmds(condition, units, found.clone())?;
+            check_cmds(then, units, found.clone())?;
+            if let Some(otherwise) = otherwise {
+                check_cmds(otherwise, units, found.clone())?;
+            }
+            Ok(())
+        }
         Command::Unit { id, args, .. } => {
             if found.contains(id) {
                 found.push(id.to_owned());
