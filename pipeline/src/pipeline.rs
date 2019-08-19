@@ -5,17 +5,7 @@ pub type InstanceId = Uuid;
 
 #[derive(Debug)]
 pub struct Pipeline {
-    pub steps: Vec<Unit>,
-    pub units: Units,
-}
-
-pub type Units = HashMap<String, Unit>;
-
-#[derive(Debug)]
-pub struct Unit {
-    pub description: Option<String>,
-    pub commands: Commands,
-    pub args: Option<Vec<ArgumentKey>>,
+    pub commands: Struct,
 }
 
 #[derive(Debug)]
@@ -24,12 +14,47 @@ pub struct ArgumentKey {
 }
 
 #[derive(Debug)]
-pub enum Commands {
-    Single(Command),
-    Multiple {
-        commands: Vec<Commands>,
+pub enum Struct {
+    Commands {
+        instance_id: InstanceId,
+        description: Option<String>,
+        arguments: Option<Arguments>,
+        commands: Vec<Command>,
+        location: Location,
+    },
+    Group {
+        instance_id: InstanceId,
+        description: Option<String>,
+        arguments: Option<Arguments>,
+        group: Vec<Struct>,
         mode: ExecutionMode,
         run_on_status: Vec<Status>,
+    },
+    On {
+        instance_id: InstanceId,
+        description: Option<String>,
+        arguments: Option<Arguments>,
+        condition: Box<Struct>,
+        on_success: Option<Box<Struct>>,
+        on_error: Option<Box<Struct>>,
+        on_abort: Option<Box<Struct>>,
+    },
+}
+
+#[derive(Debug)]
+pub struct Command {
+    name: String,
+    arguments: Option<Arguments>
+}
+
+#[derive(Debug)]
+pub enum Location {
+    Wasm {
+        uri: String,
+    },
+    Oci {
+        repository: String,
+        image: String,
     },
 }
 
@@ -45,38 +70,6 @@ pub enum Status {
     Error,
     Success,
     Abort,
-}
-
-#[derive(Debug)]
-pub enum Command {
-    If {
-        instance_id: InstanceId,
-        condition: Box<Commands>,
-        then: Box<Commands>,
-        otherwise: Option<Box<Commands>>,
-    },
-    Unit {
-        instance_id: InstanceId,
-        id: String,
-        args: Option<HashMap<String, String>>,
-    },
-    Wasm {
-        instance_id: InstanceId,
-        uri: String,
-        commands: Vec<ExternalCommand>,
-    },
-    Oci {
-        instance_id: InstanceId,
-        repository: String,
-        image: String,
-        commands: Vec<ExternalCommand>,
-    },
-}
-
-#[derive(Debug)]
-pub struct ExternalCommand {
-    pub command: String,
-    pub args: Option<Arguments>,
 }
 
 #[derive(Debug)]

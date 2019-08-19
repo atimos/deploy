@@ -12,57 +12,67 @@ pub fn parse(content: &[u8]) -> Result<crate::pipeline::Pipeline, error::Error> 
 
 #[derive(Debug, Deserialize)]
 pub struct Pipeline {
-    pub steps: Vec<Unit>,
+    pub steps: Vec<Step>,
     #[serde(default)]
     pub units: HashMap<String, Unit>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Step {
+    pub description: Option<String>,
+    pub args: Option<Vec<ArgumentKey>>,
+    pub commands: ControlStructure,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct Unit {
     pub description: Option<String>,
     pub args: Option<Vec<ArgumentKey>>,
-    pub commands: Commands,
+    pub commands: ControlStructure,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-pub enum Commands {
-    Single(Command),
-    ConfiguredList {
-        commands: Vec<Commands>,
-        #[serde(default)]
-        mode: ExecutionMode,
-        #[serde(default)]
-        run_on_status: Vec<Status>,
-    },
-    List(Vec<Commands>),
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(tag = "type")]
 pub enum Command {
-    #[serde(rename = "unit")]
-    Unit { id: String, args: Option<Arguments> },
-    #[serde(rename = "if")]
-    If {
-        condition: Box<Commands>,
-        then: Box<Commands>,
-        otherwise: Option<Box<Commands>>,
-    },
-    #[serde(rename = "wasm")]
     Wasm {
         uri: String,
         #[serde(flatten)]
         command: Option<ExternalCommand>,
         commands: Option<Vec<ExternalCommand>>,
     },
-    #[serde(rename = "oci")]
     Oci {
         repository: String,
         image: String,
         #[serde(flatten)]
         command: Option<ExternalCommand>,
         commands: Option<Vec<ExternalCommand>>,
+    },
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(tag = "type")]
+pub enum ControlStructure {
+    #[serde(rename = "command")]
+    Command(Command),
+    #[serde(rename = "inline")]
+    Inline(Box<ControlStructure>),
+    #[serde(rename = "list")]
+    List {
+        commands: Vec<ControlStructure>,
+        mode: ExecutionMode,
+        run_on_status: Vec<Status>,
+    },
+    #[serde(rename = "on")]
+    On {
+        condition: Box<ControlStructure>,
+        success: Option<Box<ControlStructure>>,
+        error: Option<Box<ControlStructure>>,
+        abort: Option<Box<ControlStructure>>,
+    },
+    #[serde(rename = "ref")]
+    Reference {
+        id: String,
+        args: Option<HashMap<String, String>>,
     },
 }
 

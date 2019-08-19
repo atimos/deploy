@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use super::{
     error::Error,
-    pipeline::{ArgumentKey, Command, Commands, Pipeline, Unit, Units},
+    pipeline::{ArgumentKey, Commands, ControlStructure, Pipeline, Unit, Units},
 };
 
 pub fn check(pipeline: Pipeline) -> Result<Pipeline, Error> {
@@ -26,7 +26,8 @@ fn check_units(units: &Units) -> Result<(), Error> {
 
 fn check_cmds(cmd: &Commands, units: &Units, used: Vec<String>) -> Result<(), Error> {
     match cmd {
-        Commands::Single(cmd) => check_cmd(cmd, units, used),
+        Commands::Command(cmd) => Ok(()),
+        Commands::ControlStructure(str) => check_ctrl_structure(str, units, used),
         Commands::Multiple { commands, .. } => commands
             .iter()
             .map(|cmds| check_cmds(cmds, units, used.clone()))
@@ -34,19 +35,9 @@ fn check_cmds(cmd: &Commands, units: &Units, used: Vec<String>) -> Result<(), Er
     }
 }
 
-fn check_cmd(cmd: &Command, units: &Units, mut found: Vec<String>) -> Result<(), Error> {
-    match cmd {
-        Command::Oci { .. } => Ok(()),
-        Command::Wasm { .. } => Ok(()),
-        Command::If { condition, then, otherwise, ..} => {
-            check_cmds(condition, units, found.clone())?;
-            check_cmds(then, units, found.clone())?;
-            if let Some(otherwise) = otherwise {
-                check_cmds(otherwise, units, found.clone())?;
-            }
-            Ok(())
-        }
-        Command::Unit { id, args, .. } => {
+fn check_ctrl_structure(str: &ControlStructure, units: &Units, found: Vec<String>) -> Result<(), Error> {
+    match str {
+        ControlStructure::Unit { id, args, .. } => {
             if found.contains(id) {
                 found.push(id.to_owned());
                 return Err(Error::UnitRecursion(found));
@@ -58,6 +49,19 @@ fn check_cmd(cmd: &Command, units: &Units, mut found: Vec<String>) -> Result<(),
             } else {
                 Err(Error::UnitNotFound(id.to_owned()))
             }
+        }
+        ControlStructure::On { condition, success, error, abort } => {
+            check_cmds(condition, units, found.clone())?;
+            if let Some(success) = success {
+                check_cmds(success, units, found.clone())?;
+            }
+            if let Some(error) = error {
+                check_cmds(error, units, found.clone())?;
+            }
+            if let Some(abort) = abort {
+                check_cmds(abort, units, found.clone())?;
+            }
+            Ok(())
         }
     }
 }

@@ -40,6 +40,7 @@
     commands = {mode = "parallel", run-on-status = ["abort", "error", "success"] , commands = [
         {type = "wasm", uri = "core://report", command = "publish", args = {input = "test/report/php/report.xml", type = "junit"}},
         {type = "wasm", uri = "core://report", command = "publish", args = {input = "test/report/php/clover.xml", type = "clover"}},
+        {type = "if", condition = {type = "unit", id = "composer"}, success = {type = "unit", id = "composer"}},
     ]}
 
 [units.build-image]
@@ -53,3 +54,7 @@
     args= [{name = "dev-mode"}]
     description="Install packages"
     commands = {type = "oci", repository = "https://registry.hub.docker.com", image = "composer", command = "composer", args = ["install", "--{{args.dev-mode}}"]}
+
+[units.composer]
+    description="Install packages"
+    commands = []

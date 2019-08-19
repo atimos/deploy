@@ -1,19 +1,17 @@
 mod environment;
+mod program;
 mod oci;
-mod unit;
+//mod unit;
 mod wasm;
 
 use pipeline::Pipeline;
 use std::path::PathBuf;
 use uuid::Uuid;
-use pipeline::InstanceId;
 
-#[derive(Default)]
+#[derive(Debug, Default)]
 pub struct Runner {
     jobs: Vec<Job>,
 }
-
-type InstanceIds<'a> = Vec<&'a InstanceId>;
 
 impl Runner {
     pub fn add(&mut self, pipeline: Pipeline) {
@@ -49,10 +47,8 @@ impl Job {
             workspace: PathBuf::from("./deploy"),
         };
 
-        let scripts = wasm::prepare(&self.pipeline);
-        let containers = oci::prepare(&self.pipeline);
-        dbg!(scripts);
-        dbg!(containers);
+        let programs = program::Programs::from(&self.pipeline);
+        dbg!(programs);
 
         // for (idx, unit) in self.pipeline.steps.iter().enumerate() {
         //     println!("Running: Step {}: {:?}", idx, unit.description);

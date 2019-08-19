@@ -46,7 +46,8 @@ impl TryInto<p::Commands> for Commands {
     type Error = Error;
     fn try_into(self) -> Result<p::Commands> {
         Ok(match self {
-            Commands::Single(cmd) => p::Commands::Single(cmd.try_into()?),
+            Commands::Command(cmd) => p::Commands::Command(cmd.try_into()?),
+            Commands::ControlStructure(str) => p::Commands::ControlStructure(str.try_into()?),
             Commands::List(cmds) => p::Commands::Multiple {
                 run_on_status: vec![p::Status::Success],
                 mode: p::ExecutionMode::SequenceStopOnError,
@@ -90,17 +91,6 @@ impl TryInto<p::Command> for Command {
 
     fn try_into(self) -> Result<p::Command> {
         Ok(match self {
-            Self::Unit { id, args } => p::Command::Unit {
-                instance_id: p::InstanceId::new_v4(),
-                id,
-                args: args.map(TryInto::try_into).transpose()?,
-            },
-            Self::If { condition, then, otherwise } => p::Command::If {
-                instance_id: p::InstanceId::new_v4(),
-                condition: Box::new((*condition).try_into()?),
-                then: Box::new((*then).try_into()?),
-                otherwise: otherwise.map(|cmds| (*cmds).try_into()).transpose()?.map(Box::new),
-            },
             Self::Wasm { uri, command, commands } => p::Command::Wasm {
                 instance_id: p::InstanceId::new_v4(),
                 uri,
@@ -111,6 +101,27 @@ impl TryInto<p::Command> for Command {
                 repository,
                 image,
                 commands: map_external_commands(command, commands)?,
+            },
+        })
+    }
+}
+
+impl TryInto<p::ControlStructure> for ControlStructure {
+    type Error = Error;
+
+    fn try_into(self) -> Result<p::ControlStructure> {
+        Ok(match self {
+            Self::On { condition, success, error, abort } => p::ControlStructure::On {
+                instance_id: p::InstanceId::new_v4(),
+                condition: Box::new((*condition).try_into()?),
+                success: success.map(|cmds| (*cmds).try_into()).transpose()?.map(Box::new),
+                error: error.map(|cmds| (*cmds).try_into()).transpose()?.map(Box::new),
+                abort: abort.map(|cmds| (*cmds).try_into()).transpose()?.map(Box::new),
+            },
+            Self::Unit { id, args } => p::ControlStructure::Unit {
+                instance_id: p::InstanceId::new_v4(),
+                id,
+                args: args.map(TryInto::try_into).transpose()?,
             },
         })
     }
