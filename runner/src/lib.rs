@@ -1,12 +1,17 @@
 mod environment;
-mod program;
-mod oci;
+//mod program;
+//mod oci;
 //mod unit;
-mod wasm;
+//mod wasm;
 
 use pipeline::Pipeline;
 use std::path::PathBuf;
 use uuid::Uuid;
+
+trait Program {
+    fn load(self) -> Self;
+    fn run(&self);
+}
 
 #[derive(Debug, Default)]
 pub struct Runner {
@@ -15,12 +20,10 @@ pub struct Runner {
 
 impl Runner {
     pub fn add(&mut self, pipeline: Pipeline) {
-        let id = Uuid::new_v4();
-        self.jobs.push(Job {
-            id: id,
+        self.jobs.push(Job::load(
             pipeline,
-            workspace: PathBuf::from(String::from("./deploy/") + id.to_string().as_ref()),
-        });
+            PathBuf::from(String::from("./deploy/")),
+        ));
     }
 
     pub fn run_next(&mut self) {
@@ -32,23 +35,29 @@ impl Runner {
 
 #[derive(Debug)]
 pub struct Job {
-    pub id: Uuid,
-    pub pipeline: Pipeline,
-    pub workspace: PathBuf,
+    instance_id: Uuid,
+    pipeline: Pipeline,
+    //programs: Programs,
+    workspace: PathBuf,
 }
 
 impl Job {
+    pub fn load(pipeline: Pipeline, workspace: PathBuf) -> Self {
+        Self {
+            instance_id: Uuid::new_v4(),
+            //programs: Programs::from(&pipeline),
+            pipeline,
+            workspace,
+        }
+    }
     pub fn run(&mut self) {
-        let mut env = environment::Environment {
-            status: environment::Status::Success,
-            config: None,
-            unit: None,
-            instance: None,
-            workspace: PathBuf::from("./deploy"),
-        };
-
-        let programs = program::Programs::from(&self.pipeline);
-        dbg!(programs);
+        // let mut env = environment::Environment {
+        //     status: environment::Status::Success,
+        //     config: None,
+        //     unit: None,
+        //     instance: None,
+        //     workspace: self.workspace,
+        // };
 
         // for (idx, unit) in self.pipeline.steps.iter().enumerate() {
         //     println!("Running: Step {}: {:?}", idx, unit.description);

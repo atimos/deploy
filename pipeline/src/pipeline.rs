@@ -2,60 +2,53 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 pub type InstanceId = Uuid;
+pub type Arguments = Option<HashMap<String, String>>;
 
 #[derive(Debug)]
-pub struct Pipeline {
-    pub commands: Struct,
-}
-
-#[derive(Debug)]
-pub struct ArgumentKey {
-    pub name: String,
-}
-
-#[derive(Debug)]
-pub enum Struct {
-    Commands {
+pub enum Pipeline {
+    Program {
         instance_id: InstanceId,
         description: Option<String>,
-        arguments: Option<Arguments>,
-        commands: Vec<Command>,
+        cmds: Vec<Command>,
         location: Location,
+        args: Arguments,
     },
-    Group {
+    List {
         instance_id: InstanceId,
         description: Option<String>,
-        arguments: Option<Arguments>,
-        group: Vec<Struct>,
+        list: Vec<Pipeline>,
         mode: ExecutionMode,
-        run_on_status: Vec<Status>,
+        run_on: Vec<Status>,
+        args: Arguments,
     },
     On {
         instance_id: InstanceId,
         description: Option<String>,
-        arguments: Option<Arguments>,
-        condition: Box<Struct>,
-        on_success: Option<Box<Struct>>,
-        on_error: Option<Box<Struct>>,
-        on_abort: Option<Box<Struct>>,
+        condition: Box<Pipeline>,
+        on_success: Option<Box<Pipeline>>,
+        on_error: Option<Box<Pipeline>>,
+        on_abort: Option<Box<Pipeline>>,
+        args: Arguments,
     },
 }
 
 #[derive(Debug)]
 pub struct Command {
-    name: String,
-    arguments: Option<Arguments>
+    pub name: String,
+    pub args: Option<CommandArguments>,
+}
+
+#[derive(Debug)]
+pub enum CommandArguments {
+    Map(HashMap<String, String>),
+    List(Vec<String>),
+    String(String),
 }
 
 #[derive(Debug)]
 pub enum Location {
-    Wasm {
-        uri: String,
-    },
-    Oci {
-        repository: String,
-        image: String,
-    },
+    Wasm { uri: String },
+    Oci { repository: String, image: String },
 }
 
 #[derive(Debug)]
@@ -70,11 +63,4 @@ pub enum Status {
     Error,
     Success,
     Abort,
-}
-
-#[derive(Debug)]
-pub enum Arguments {
-    Map(HashMap<String, String>),
-    List(Vec<String>),
-    String(String),
 }

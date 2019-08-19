@@ -1,16 +1,10 @@
-// mod check;
-// mod error;
+mod error;
 mod pipeline;
-//mod toml;
+mod ron;
 
-//use self::toml::{parse as parse_toml};
-
-//pub use error::*;
+pub use error::*;
 pub use pipeline::*;
 
-pub fn from_toml(content: &[u8]) -> Result<Pipeline, ()> {
-    //check::check(parse_toml(content)?)
-    Ok(Pipeline {
-        steps: Vec::new()
-    })
+pub fn from_ron(content: &[u8]) -> Result<Pipeline, error::Error> {
+    self::ron::parse(content)
 }

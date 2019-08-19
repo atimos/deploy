@@ -1,30 +1,14 @@
-use crate::toml::error::Error as TomlError;
-
-pub type Result<T> = std::result::Result<T, Error>;
+use crate::ron::Error as RonError;
 
 #[derive(Debug)]
 pub enum Error {
-    Toml(TomlError),
-    UnitNotFound(String),
-    UnitRecursion(Vec<String>),
-    ArgumentMissing(String),
-    ArgumentsMissing,
-    UnexpectedArgument(String),
-    UnexpectedArguments,
+    Ron(RonError),
 }
 
 impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Toml(err) => write!(f, "{}", err),
-            Self::UnitNotFound(uri) => write!(f, "Could not find unit \"{}\"", uri),
-            Self::UnitRecursion(name_list) => {
-                write!(f, "Recursion found in {}", name_list.join(" -> "))
-            }
-            Self::ArgumentMissing(arg) => write!(f, "Argument \"{}\" is missing", arg),
-            Self::ArgumentsMissing => write!(f, "Unit requires arguments"),
-            Self::UnexpectedArgument(arg) => write!(f, "Unexpected argument \"{}\"", arg),
-            Self::UnexpectedArguments => write!(f, "Unit does not expect any arguments"),
+            Self::Ron(err) => write!(f, "{}", err),
         }
     }
 }
@@ -32,14 +16,13 @@ impl std::fmt::Display for Error {
 impl std::error::Error for Error {
     fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
         match self {
-            Self::Toml(err) => Some(err),
-            _ => None,
+            Self::Ron(err) => Some(err),
         }
     }
 }
 
-impl From<TomlError> for Error {
-    fn from(err: TomlError) -> Self {
-        Self::Toml(err)
+impl From<RonError> for Error {
+    fn from(err: RonError) -> Self {
+        Self::Ron(err)
     }
 }
