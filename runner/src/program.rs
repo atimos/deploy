@@ -1,9 +1,9 @@
-mod wasm;
 mod oci;
+mod wasm;
 
-use std::convert::TryFrom;
+use pipeline::{Arguments, Command, InstanceId, Location, Pipeline};
 use std::collections::HashMap;
-use pipeline::{Pipeline, InstanceId, Command, Arguments, Location};
+use std::convert::TryFrom;
 
 #[derive(Debug)]
 pub struct Programs {
@@ -67,13 +67,22 @@ impl Binary {
 
 fn prepare(pipeline: &Pipeline, mut ids: Vec<InstanceId>, programs: &mut Programs) {
     match pipeline {
-        Pipeline::List { list, instance_id, .. } => {
+        Pipeline::List {
+            list, instance_id, ..
+        } => {
             ids.push(instance_id.clone());
             for pipeline in list {
                 prepare(pipeline, ids.clone(), programs)
             }
         }
-        Pipeline::On { condition, on_success, on_error, on_abort, instance_id, .. } => {
+        Pipeline::On {
+            condition,
+            on_success,
+            on_error,
+            on_abort,
+            instance_id,
+            ..
+        } => {
             ids.push(instance_id.clone());
             prepare(condition, ids.clone(), programs);
 
@@ -88,14 +97,22 @@ fn prepare(pipeline: &Pipeline, mut ids: Vec<InstanceId>, programs: &mut Program
                 prepare(pipeline, ids.clone(), programs);
             }
         }
-        Pipeline::Program {location, instance_id, .. } => {
+        Pipeline::Program {
+            location,
+            instance_id,
+            ..
+        } => {
             ids.push(instance_id.clone());
             match location {
                 Location::Oci { repository, image } => {
-                    programs.references.insert(ids, Reference::Oci(repository.clone(), image.clone()));
+                    programs
+                        .references
+                        .insert(ids, Reference::Oci(repository.clone(), image.clone()));
                 }
                 Location::Wasm { uri } => {
-                    programs.references.insert(ids, Reference::Wasm(uri.clone()));
+                    programs
+                        .references
+                        .insert(ids, Reference::Wasm(uri.clone()));
                 }
             }
         }

@@ -1,10 +1,10 @@
 mod environment;
 mod program;
 
-use std::convert::TryFrom;
-use program::Programs;
-use pipeline::Pipeline;
 use pipeline::InstanceId;
+use pipeline::Pipeline;
+use program::Programs;
+use std::convert::TryFrom;
 use std::path::PathBuf;
 use uuid::Uuid;
 
@@ -51,13 +51,22 @@ impl<'a> Job {
 
     fn run_pipeline(&self, pipeline: &Pipeline, mut ids: Vec<InstanceId>) {
         match pipeline {
-            Pipeline::List { list, instance_id, .. } => {
+            Pipeline::List {
+                list, instance_id, ..
+            } => {
                 ids.push(instance_id.clone());
                 for pipeline in list {
                     self.run_pipeline(pipeline, ids.clone())
                 }
             }
-            Pipeline::On { condition, on_success, on_error, on_abort, instance_id, .. } => {
+            Pipeline::On {
+                condition,
+                on_success,
+                on_error,
+                on_abort,
+                instance_id,
+                ..
+            } => {
                 ids.push(instance_id.clone());
                 self.run_pipeline(condition, ids.clone());
 
@@ -72,7 +81,12 @@ impl<'a> Job {
                     self.run_pipeline(pipeline, ids.clone());
                 }
             }
-            Pipeline::Program {cmds, args, instance_id, .. } => {
+            Pipeline::Program {
+                cmds,
+                args,
+                instance_id,
+                ..
+            } => {
                 ids.push(instance_id.clone());
                 self.programs.run(&ids, cmds, args);
             }
