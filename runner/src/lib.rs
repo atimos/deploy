@@ -1,17 +1,12 @@
 mod environment;
-//mod program;
-//mod oci;
-//mod unit;
-//mod wasm;
+mod program;
 
+use std::convert::TryFrom;
+use program::Programs;
 use pipeline::Pipeline;
+use pipeline::InstanceId;
 use std::path::PathBuf;
 use uuid::Uuid;
-
-trait Program {
-    fn load(self) -> Self;
-    fn run(&self);
-}
 
 #[derive(Debug, Default)]
 pub struct Runner {
@@ -37,31 +32,50 @@ impl Runner {
 pub struct Job {
     instance_id: Uuid,
     pipeline: Pipeline,
-    //programs: Programs,
+    programs: Programs,
     workspace: PathBuf,
 }
 
-impl Job {
+impl<'a> Job {
     pub fn load(pipeline: Pipeline, workspace: PathBuf) -> Self {
         Self {
             instance_id: Uuid::new_v4(),
-            //programs: Programs::from(&pipeline),
+            programs: Programs::try_from(&pipeline).unwrap(),
             pipeline,
             workspace,
         }
     }
     pub fn run(&mut self) {
-        // let mut env = environment::Environment {
-        //     status: environment::Status::Success,
-        //     config: None,
-        //     unit: None,
-        //     instance: None,
-        //     workspace: self.workspace,
-        // };
+        self.run_pipeline(&self.pipeline, Vec::new());
+    }
 
-        // for (idx, unit) in self.pipeline.steps.iter().enumerate() {
-        //     println!("Running: Step {}: {:?}", idx, unit.description);
-        //     unit::run(unit, &None, &self.pipeline.units, &mut env, InstanceIds::new());
-        // }
+    fn run_pipeline(&self, pipeline: &Pipeline, mut ids: Vec<InstanceId>) {
+        match pipeline {
+            Pipeline::List { list, instance_id, .. } => {
+                ids.push(instance_id.clone());
+                for pipeline in list {
+                    self.run_pipeline(pipeline, ids.clone())
+                }
+            }
+            Pipeline::On { condition, on_success, on_error, on_abort, instance_id, .. } => {
+                ids.push(instance_id.clone());
+                self.run_pipeline(condition, ids.clone());
+
+                if let Some(pipeline) = on_success {
+                    self.run_pipeline(pipeline, ids.clone());
+                }
+                if let Some(pipeline) = on_error {
+                    self.run_pipeline(pipeline, ids.clone());
+                }
+
+                if let Some(pipeline) = on_abort {
+                    self.run_pipeline(pipeline, ids.clone());
+                }
+            }
+            Pipeline::Program {cmds, args, instance_id, .. } => {
+                ids.push(instance_id.clone());
+                self.programs.run(&ids, cmds, args);
+            }
+        }
     }
 }
