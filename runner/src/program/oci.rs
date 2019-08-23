@@ -1,13 +1,20 @@
+use crate::environment::Environment;
 use pipeline::Command;
+use std::path::Path;
 
-pub fn load(repository: &str, image: &str) -> Result<String, ()> {
+#[derive(Debug)]
+pub enum Error {
+    Load,
+}
+
+pub fn load(repository: &str, image: &str, workspace: &Path) -> Result<String, Error> {
     Ok(String::new())
 }
 
-pub fn run(container_id: &str, cmds: Option<Command>) -> Result<(), ()> {
+pub fn run(container_id: &str, cmds: &[Command], env: Environment) -> Result<Environment, Error> {
     println!(
         "OCI: docker run --rm --interactive --tty --volume $PWD:/app --user $(id -u):$(id -g) {:?}",
         cmds
     );
-    Ok(())
+    Ok(env)
 }

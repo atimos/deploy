@@ -1,39 +1,62 @@
+mod error;
 mod oci;
 mod wasm;
 
+use crate::environment::Environment;
+use handlebars::Handlebars;
 use pipeline::{Arguments, Command, InstanceId, Location, Pipeline};
 use std::collections::HashMap;
 use std::convert::TryFrom;
+use std::path::Path;
 
-#[derive(Debug)]
+pub use error::Error;
+
+#[derive(Debug, Default)]
 pub struct Programs {
     references: HashMap<Vec<InstanceId>, Reference>,
     binaries: HashMap<Vec<InstanceId>, Binary>,
 }
 
 impl Programs {
-    pub fn run(&self, ids: &[InstanceId], cmds: &[Command], args: &Arguments) -> Result<(), ()> {
-        if let Some(binary) = self.binaries.get(ids) {
-            dbg!(binary, cmds, args);
-        } else {
-            if let Some(reference) = self.references.get(ids) {
-                dbg!(reference, cmds, args);
-            }
+    pub fn run(
+        &self,
+        id: &[InstanceId],
+        cmds: &[Command],
+        args: &Arguments,
+        env: Environment,
+    ) -> Result<Environment, Error> {
+        if let Some(binary) = self.binaries.get(id) {
+            return binary.run(cmds, env);
         }
-        Ok(())
+        if let Some(reference) = self.references.get(id) {
+            return reference.load(args, &env.workspace)?.run(cmds, env);
+        }
+        Ok(env)
     }
 }
 
-impl TryFrom<&Pipeline> for Programs {
-    type Error = ();
+type References = Vec<(Vec<InstanceId>, Reference)>;
 
-    fn try_from(pipeline: &Pipeline) -> Result<Self, Self::Error> {
-        let mut programs = Self {
-            references: HashMap::new(),
-            binaries: HashMap::new(),
-        };
+impl TryFrom<(&Pipeline, &Path)> for Programs {
+    type Error = Error;
 
-        prepare(pipeline, Vec::new(), &mut programs);
+    fn try_from((pipeline, workspace): (&Pipeline, &Path)) -> Result<Self, Self::Error> {
+        let mut references = References::new();
+        prepare(pipeline, Vec::new(), &mut references);
+        let mut programs = Self::default();
+
+        for (id, reference) in references {
+            match reference.load(&None, workspace) {
+                Ok(bin) => {
+                    programs.binaries.insert(id, bin);
+                }
+                Err(Error::Template(_)) => {
+                    programs.references.insert(id, reference);
+                }
+                Err(err) => return Err(err),
+            }
+        }
+
         Ok(programs)
     }
 }
@@ -45,10 +68,14 @@ enum Reference {
 }
 
 impl Reference {
-    fn load(&self, args: Option<Arguments>) -> Result<Binary, ()> {
+    fn load(&self, args: &Arguments, workspace: &Path) -> Result<Binary, Error> {
         Ok(match self {
-            Self::Wasm(uri) => Binary::Wasm(wasm::load(&uri)?),
-            Self::Oci(repository, image) => Binary::Oci(oci::load(&repository, &image)?),
+            Self::Wasm(uri) => Binary::Wasm(wasm::load(&render_template(&uri, &args)?)?),
+            Self::Oci(repository, image) => Binary::Oci(oci::load(
+                &render_template(&repository, &args)?,
+                &render_template(&image, &args)?,
+                workspace,
+            )?),
         })
     }
 }
@@ -60,41 +87,50 @@ enum Binary {
 }
 
 impl Binary {
-    fn run(&self, cmds: Vec<Command>) -> Result<(), ()> {
-        Ok(())
+    fn run(&self, cmds: &[Command], env: Environment) -> Result<Environment, Error> {
+        Ok(match self {
+            Self::Wasm(bin) => wasm::run(bin, &cmds, env)?,
+            Self::Oci(container) => oci::run(container, &cmds, env)?,
+        })
     }
 }
 
-fn prepare(pipeline: &Pipeline, mut ids: Vec<InstanceId>, programs: &mut Programs) {
+fn render_template(tpl: &str, args: &Arguments) -> Result<String, Error> {
+    let mut hb = Handlebars::new();
+    hb.set_strict_mode(true);
+    Ok(hb.render_template(&tpl, &args)?)
+}
+
+fn prepare(pipeline: &Pipeline, mut id: Vec<InstanceId>, references: &mut References) {
     match pipeline {
         Pipeline::List {
             list, instance_id, ..
         } => {
-            ids.push(instance_id.clone());
+            id.push(instance_id.clone());
             for pipeline in list {
-                prepare(pipeline, ids.clone(), programs)
+                prepare(pipeline, id.clone(), references)
             }
         }
         Pipeline::On {
-            condition,
-            on_success,
-            on_error,
-            on_abort,
+            cond,
+            success,
+            error,
+            abort,
             instance_id,
             ..
         } => {
-            ids.push(instance_id.clone());
-            prepare(condition, ids.clone(), programs);
+            id.push(instance_id.clone());
+            prepare(cond, id.clone(), references);
 
-            if let Some(pipeline) = on_success {
-                prepare(pipeline, ids.clone(), programs);
+            if let Some(pipeline) = success {
+                prepare(pipeline, id.clone(), references);
             }
-            if let Some(pipeline) = on_error {
-                prepare(pipeline, ids.clone(), programs);
+            if let Some(pipeline) = error {
+                prepare(pipeline, id.clone(), references);
             }
 
-            if let Some(pipeline) = on_abort {
-                prepare(pipeline, ids.clone(), programs);
+            if let Some(pipeline) = abort {
+                prepare(pipeline, id.clone(), references);
             }
         }
         Pipeline::Program {
@@ -102,19 +138,13 @@ fn prepare(pipeline: &Pipeline, mut ids: Vec<InstanceId>, programs: &mut Program
             instance_id,
             ..
         } => {
-            ids.push(instance_id.clone());
-            match location {
+            id.push(instance_id.clone());
+            references.push(match location {
                 Location::Oci { repository, image } => {
-                    programs
-                        .references
-                        .insert(ids, Reference::Oci(repository.clone(), image.clone()));
+                    (id, Reference::Oci(repository.clone(), image.clone()))
                 }
-                Location::Wasm { uri } => {
-                    programs
-                        .references
-                        .insert(ids, Reference::Wasm(uri.clone()));
-                }
-            }
+                Location::Wasm { uri } => (id, Reference::Wasm(uri.clone())),
+            });
         }
     }
 }

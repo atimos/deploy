@@ -11,3 +11,4 @@ path = "src/lib.rs"
 [dependencies]
 pipeline = {path = "../pipeline"}
 uuid = {version = "0.7.4", features = ["v4"]}
+handlebars = "2.0.1"

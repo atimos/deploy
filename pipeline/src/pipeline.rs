@@ -24,10 +24,10 @@ pub enum Pipeline {
     On {
         instance_id: InstanceId,
         description: Option<String>,
-        condition: Box<Pipeline>,
-        on_success: Option<Box<Pipeline>>,
-        on_error: Option<Box<Pipeline>>,
-        on_abort: Option<Box<Pipeline>>,
+        cond: Box<Pipeline>,
+        success: Option<Box<Pipeline>>,
+        error: Option<Box<Pipeline>>,
+        abort: Option<Box<Pipeline>>,
         args: Arguments,
     },
 }

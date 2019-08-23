@@ -103,23 +103,23 @@ fn convert_block<'a>(
         } => p::Pipeline::On {
             instance_id: p::InstanceId::new_v4(),
             description: get_description(description),
-            condition: Box::new(convert_block(
+            cond: Box::new(convert_block(
                 &*condition,
                 args.clone(),
                 units,
                 used.clone(),
             )?),
-            on_success: on_success
+            success: on_success
                 .as_ref()
                 .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
                 .transpose()?
                 .map(Box::new),
-            on_error: on_error
+            error: on_error
                 .as_ref()
                 .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
                 .transpose()?
                 .map(Box::new),
-            on_abort: on_abort
+            abort: on_abort
                 .as_ref()
                 .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
                 .transpose()?

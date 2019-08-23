@@ -24,10 +24,10 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
         }
         pipeline::Pipeline::On {
             description,
-            condition,
-            on_success,
-            on_error,
-            on_abort,
+            cond,
+            success,
+            error,
+            abort,
             ..
         } => {
             let child_indentation = format!("    {}", child_indentation);
@@ -38,19 +38,19 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
             }
 
             println!("\n    {}condition:", indentation);
-            pretty(condition, child_indentation.clone());
+            pretty(cond, child_indentation.clone());
 
-            if let Some(cmd) = on_success {
+            if let Some(cmd) = success {
                 println!("    {}on_success:", indentation);
                 pretty(cmd, child_indentation.clone());
             }
 
-            if let Some(cmd) = on_error {
+            if let Some(cmd) = error {
                 println!("    {}on_error:", indentation);
                 pretty(cmd, child_indentation.clone());
             }
 
-            if let Some(cmd) = on_abort {
+            if let Some(cmd) = abort {
                 println!("    {}on_abort:", indentation);
                 pretty(cmd, child_indentation);
             }

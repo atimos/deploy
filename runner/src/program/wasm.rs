@@ -1,9 +1,15 @@
+use crate::environment::Environment;
 use pipeline::Command;
 
-pub fn load(uri: &str) -> Result<Vec<u8>, ()> {
+#[derive(Debug)]
+pub enum Error {
+    Load,
+}
+
+pub fn load(uri: &str) -> Result<Vec<u8>, Error> {
     Ok(Vec::new())
 }
-pub fn run(bin: &[u8], cmds: Option<Command>) -> Result<(), ()> {
+pub fn run(bin: &[u8], cmds: &[Command], env: Environment) -> Result<Environment, Error> {
     println!("WASM: {:?}", cmds);
-    Ok(())
+    Ok(env)
 }
