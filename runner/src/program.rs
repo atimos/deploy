@@ -2,16 +2,15 @@ mod error;
 mod oci;
 mod wasm;
 
-use crate::environment::Environment;
-use handlebars::Handlebars;
+use crate::{environment::Environment, template::render};
+use derivative::Derivative;
 use pipeline::{Arguments, Command, InstanceId, Location, Pipeline};
-use std::collections::HashMap;
-use std::convert::TryFrom;
-use std::path::Path;
+use std::{collections::HashMap, convert::TryFrom, path::Path};
 
 pub use error::Error;
 
-#[derive(Debug, Default)]
+#[derive(Derivative)]
+#[derivative(Debug, Default)]
 pub struct Programs {
     references: HashMap<Vec<InstanceId>, Reference>,
     binaries: HashMap<Vec<InstanceId>, Binary>,
@@ -61,7 +60,8 @@ impl TryFrom<(&Pipeline, &Path)> for Programs {
     }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 enum Reference {
     Wasm(String),
     Oci(String, String),
@@ -70,17 +70,18 @@ enum Reference {
 impl Reference {
     fn load(&self, args: &Arguments, workspace: &Path) -> Result<Binary, Error> {
         Ok(match self {
-            Self::Wasm(uri) => Binary::Wasm(wasm::load(&render_template(&uri, &args)?)?),
+            Self::Wasm(uri) => Binary::Wasm(wasm::load(&render(&uri, &args)?)?),
             Self::Oci(repository, image) => Binary::Oci(oci::load(
-                &render_template(&repository, &args)?,
-                &render_template(&image, &args)?,
+                &render(&repository, &args)?,
+                &render(&image, &args)?,
                 workspace,
             )?),
         })
     }
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 enum Binary {
     Wasm(Vec<u8>),
     Oci(String),
@@ -95,30 +96,15 @@ impl Binary {
     }
 }
 
-fn render_template(tpl: &str, args: &Arguments) -> Result<String, Error> {
-    let mut hb = Handlebars::new();
-    hb.set_strict_mode(true);
-    Ok(hb.render_template(&tpl, &args)?)
-}
-
 fn prepare(pipeline: &Pipeline, mut id: Vec<InstanceId>, references: &mut References) {
     match pipeline {
-        Pipeline::List {
-            list, instance_id, ..
-        } => {
+        Pipeline::List { list, instance_id, .. } => {
             id.push(instance_id.clone());
             for pipeline in list {
                 prepare(pipeline, id.clone(), references)
             }
         }
-        Pipeline::On {
-            cond,
-            success,
-            error,
-            abort,
-            instance_id,
-            ..
-        } => {
+        Pipeline::On { cond, success, error, abort, instance_id, .. } => {
             id.push(instance_id.clone());
             prepare(cond, id.clone(), references);
 
@@ -133,11 +119,7 @@ fn prepare(pipeline: &Pipeline, mut id: Vec<InstanceId>, references: &mut Refere
                 prepare(pipeline, id.clone(), references);
             }
         }
-        Pipeline::Program {
-            location,
-            instance_id,
-            ..
-        } => {
+        Pipeline::Program { location, instance_id, .. } => {
             id.push(instance_id.clone());
             references.push(match location {
                 Location::Oci { repository, image } => {

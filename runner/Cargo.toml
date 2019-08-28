@@ -12,3 +12,4 @@ path = "src/lib.rs"
 pipeline = {path = "../pipeline"}
 uuid = {version = "0.7.4", features = ["v4"]}
 handlebars = "2.0.1"
+derivative = "1.0.2"

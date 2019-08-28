@@ -1,7 +1,9 @@
 use crate::environment::Environment;
+use derivative::Derivative;
 use pipeline::Command;
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Error {
     Load,
 }

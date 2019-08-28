@@ -1,6 +1,8 @@
+use derivative::Derivative;
 use handlebars::TemplateRenderError;
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Error {
     Template(TemplateRenderError),
     Wasm(super::wasm::Error),

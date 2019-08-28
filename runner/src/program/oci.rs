@@ -1,8 +1,10 @@
 use crate::environment::Environment;
+use derivative::Derivative;
 use pipeline::Command;
 use std::path::Path;
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Error {
     Load,
 }

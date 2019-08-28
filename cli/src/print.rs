@@ -6,12 +6,7 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
     let child_indentation = format!("    {}", indentation);
 
     match pipeline {
-        pipeline::Pipeline::List {
-            description,
-            list,
-            mode,
-            ..
-        } => {
+        pipeline::Pipeline::List { description, list, mode, .. } => {
             print!("{}{:?}(", indentation, mode);
             if let Some(description) = description {
                 print!("\"{}\" ", description);
@@ -22,14 +17,7 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
             }
             println!("{}])", indentation);
         }
-        pipeline::Pipeline::On {
-            description,
-            cond,
-            success,
-            error,
-            abort,
-            ..
-        } => {
+        pipeline::Pipeline::On { description, cond, success, error, abort, .. } => {
             let child_indentation = format!("    {}", child_indentation);
             print!("{}On(", indentation);
 
@@ -57,12 +45,7 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
 
             println!("{})", indentation);
         }
-        pipeline::Pipeline::Program {
-            description,
-            location,
-            cmds,
-            ..
-        } => {
+        pipeline::Pipeline::Program { description, location, cmds, .. } => {
             print!("{}", indentation);
             match location {
                 pipeline::Location::Oci { repository, image } => {
@@ -82,10 +65,7 @@ pub fn pretty(pipeline: &pipeline::Pipeline, indentation: String) {
             }
             print!(
                 " commands: [\"{}\"]",
-                cmds.iter()
-                    .map(|cmd| cmd.name.to_owned())
-                    .collect::<Vec<String>>()
-                    .join("\", \"")
+                cmds.iter().map(|cmd| cmd.name.to_owned()).collect::<Vec<String>>().join("\", \"")
             );
 
             println!(")");

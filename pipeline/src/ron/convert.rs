@@ -1,13 +1,14 @@
 use super::*;
 use crate::pipeline as p;
+use derivative::Derivative;
 use ron::de::Error as RonError;
-use std::collections::HashMap;
-use std::convert::TryInto;
+use std::{collections::HashMap, convert::TryInto};
 
 type Units = HashMap<String, Pipeline>;
 type Used<'a> = Vec<&'a str>;
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Error {
     Parse(RonError),
     NotFound(String),
@@ -43,6 +44,7 @@ impl From<RonError> for Error {
 
 impl TryInto<p::Pipeline> for Data {
     type Error = Error;
+
     fn try_into(self) -> Result<p::Pipeline, Error> {
         convert_block(&self.pipeline, None, &self.units, Vec::new())
     }
@@ -55,24 +57,15 @@ fn convert_block<'a>(
     mut used: Used<'a>,
 ) -> Result<p::Pipeline, Error> {
     Ok(match block {
-        Pipeline::One {
-            run,
-            description,
-            run_on,
-        } => p::Pipeline::List {
+        Pipeline::One { run, description, run_on } => p::Pipeline::List {
             instance_id: p::InstanceId::new_v4(),
             description: get_description(description),
             list: vec![convert_block(&*run, args.clone(), units, used.clone())?],
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(run_on),
-            args: args,
+            args,
         },
-        Pipeline::List {
-            list,
-            description,
-            mode,
-            run_on,
-        } => p::Pipeline::List {
+        Pipeline::List { list, description, mode, run_on } => p::Pipeline::List {
             instance_id: p::InstanceId::new_v4(),
             description: get_description(description),
             list: list
@@ -81,7 +74,7 @@ fn convert_block<'a>(
                 .collect::<Result<Vec<p::Pipeline>, Error>>()?,
             mode: mode.into(),
             run_on: convert_status_list(run_on),
-            args: args,
+            args,
         },
         Pipeline::DefaultList(list) => p::Pipeline::List {
             instance_id: p::InstanceId::new_v4(),
@@ -92,68 +85,49 @@ fn convert_block<'a>(
                 .collect::<Result<Vec<p::Pipeline>, Error>>()?,
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(&Vec::new()),
-            args: args,
+            args,
         },
-        Pipeline::On {
-            condition,
-            description,
-            on_success,
-            on_error,
-            on_abort,
-        } => p::Pipeline::On {
-            instance_id: p::InstanceId::new_v4(),
-            description: get_description(description),
-            cond: Box::new(convert_block(
-                &*condition,
-                args.clone(),
-                units,
-                used.clone(),
-            )?),
-            success: on_success
-                .as_ref()
-                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                .transpose()?
-                .map(Box::new),
-            error: on_error
-                .as_ref()
-                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                .transpose()?
-                .map(Box::new),
-            abort: on_abort
-                .as_ref()
-                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                .transpose()?
-                .map(Box::new),
-            args: args,
-        },
-        Pipeline::ProgramSingleCommand {
-            cmd,
-            location,
-            description,
-        } => p::Pipeline::Program {
+        Pipeline::On { condition, description, on_success, on_error, on_abort } => {
+            p::Pipeline::On {
+                instance_id: p::InstanceId::new_v4(),
+                description: get_description(description),
+                cond: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
+                success: on_success
+                    .as_ref()
+                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                    .transpose()?
+                    .map(Box::new),
+                error: on_error
+                    .as_ref()
+                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                    .transpose()?
+                    .map(Box::new),
+                abort: on_abort
+                    .as_ref()
+                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                    .transpose()?
+                    .map(Box::new),
+                args,
+            }
+        }
+        Pipeline::ProgramSingleCommand { cmd, location, description } => p::Pipeline::Program {
             instance_id: p::InstanceId::new_v4(),
             description: get_description(description),
             cmds: vec![cmd.into()],
             location: location.into(),
-            args: args,
+            args,
         },
-        Pipeline::ProgramMultipleCommands {
-            cmds,
-            location,
-            description,
-        } => p::Pipeline::Program {
+        Pipeline::ProgramMultipleCommands { cmds, location, description } => p::Pipeline::Program {
             instance_id: p::InstanceId::new_v4(),
             description: get_description(description),
             cmds: cmds.iter().map(Into::into).collect(),
             location: location.into(),
-            args: args,
+            args,
         },
         Pipeline::Reference { id, args } => {
             if used.contains(&id.as_ref()) {
                 used.push(id);
-                return Err(Error::Recursion(
-                    used.into_iter().map(String::from).collect(),
-                ));
+                return Err(Error::Recursion(used.into_iter().map(String::from).collect()));
             }
 
             if let Some(unit) = units.get(id) {
@@ -204,10 +178,7 @@ impl Into<p::Status> for &Status {
 
 impl Into<p::Command> for &Command {
     fn into(self) -> p::Command {
-        p::Command {
-            name: self.cmd.to_owned(),
-            args: self.args.as_ref().map(Into::into),
-        }
+        p::Command { name: self.cmd.to_owned(), args: self.args.as_ref().map(Into::into) }
     }
 }
 
@@ -224,13 +195,10 @@ impl Into<p::CommandArguments> for &CommandArguments {
 impl Into<p::Location> for &Location {
     fn into(self) -> p::Location {
         match self {
-            Location::Wasm { uri } => p::Location::Wasm {
-                uri: uri.to_owned(),
-            },
-            Location::Oci { repo, image } => p::Location::Oci {
-                repository: repo.to_owned(),
-                image: image.to_owned(),
-            },
+            Location::Wasm { uri } => p::Location::Wasm { uri: uri.to_owned() },
+            Location::Oci { repo, image } => {
+                p::Location::Oci { repository: repo.to_owned(), image: image.to_owned() }
+            }
         }
     }
 }

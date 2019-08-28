@@ -8,3 +8,4 @@ edition = "2018"
 structopt = "0.2.15"
 pipeline = {path = "../pipeline"}
 runner = {path = "../runner"}
+derivative = "1.0.2"

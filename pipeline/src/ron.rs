@@ -1,28 +1,28 @@
 mod convert;
 
 use crate::{error, pipeline};
+use derivative::Derivative;
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::convert::TryInto;
+use std::{collections::HashMap, convert::TryInto};
 
 pub use convert::Error;
 
 pub fn parse(content: &[u8]) -> Result<pipeline::Pipeline, error::Error> {
-    Ok(ron::de::from_bytes::<Data>(content)
-        .map_err(Error::Parse)?
-        .try_into()?)
+    Ok(ron::de::from_bytes::<Data>(content).map_err(Error::Parse)?.try_into()?)
 }
 
 pub type Arguments = Option<HashMap<String, String>>;
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 pub struct Data {
     pub pipeline: Pipeline,
     #[serde(default)]
     pub units: HashMap<String, Pipeline>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 #[serde(untagged)]
 pub enum Pipeline {
     ProgramSingleCommand {
@@ -74,9 +74,11 @@ pub enum Pipeline {
     },
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone, Default)]
 pub enum ExecutionMode {
     #[serde(rename = "sequence-stop-on-error")]
+    #[derivative(Default)]
     SequenceStopOnError,
     #[serde(rename = "sequence-run-all")]
     SequenceRunAll,
@@ -84,13 +86,8 @@ pub enum ExecutionMode {
     Parallel,
 }
 
-impl Default for ExecutionMode {
-    fn default() -> Self {
-        Self::SequenceStopOnError
-    }
-}
-
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 pub enum Status {
     #[serde(rename = "error")]
     Error,
@@ -100,7 +97,8 @@ pub enum Status {
     Abort,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 #[serde(tag = "type")]
 pub enum Location {
     #[serde(rename = "wasm")]
@@ -109,14 +107,16 @@ pub enum Location {
     Oci { repo: String, image: String },
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 pub struct Command {
     pub cmd: String,
     #[serde(default)]
     pub args: Option<CommandArguments>,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Derivative, Deserialize)]
+#[derivative(Debug, Clone)]
 #[serde(untagged)]
 pub enum CommandArguments {
     Map(HashMap<String, String>),

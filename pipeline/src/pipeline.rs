@@ -1,10 +1,12 @@
+use derivative::Derivative;
 use std::collections::HashMap;
 use uuid::Uuid;
 
 pub type InstanceId = Uuid;
 pub type Arguments = Option<HashMap<String, String>>;
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Pipeline {
     Program {
         instance_id: InstanceId,
@@ -32,33 +34,41 @@ pub enum Pipeline {
     },
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub struct Command {
     pub name: String,
     pub args: Option<CommandArguments>,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum CommandArguments {
+    #[derivative(Debug = "transparent")]
     Map(HashMap<String, String>),
+    #[derivative(Debug = "transparent")]
     List(Vec<String>),
+    #[derivative(Debug = "transparent")]
     String(String),
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Location {
     Wasm { uri: String },
     Oci { repository: String, image: String },
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum ExecutionMode {
     SequenceStopOnError,
     SequenceRunAll,
     Parallel,
 }
 
-#[derive(Debug)]
+#[derive(Derivative)]
+#[derivative(Debug)]
 pub enum Status {
     Error,
     Success,
