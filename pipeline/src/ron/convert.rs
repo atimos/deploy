@@ -52,21 +52,21 @@ impl TryInto<p::Pipeline> for Data {
 
 fn convert_block<'a>(
     block: &'a Pipeline,
-    args: Arguments,
+    args: Option<Arguments>,
     units: &'a Units,
     mut used: Used<'a>,
 ) -> Result<p::Pipeline, Error> {
     Ok(match block {
         Pipeline::One { run, description, run_on } => p::Pipeline::List {
-            instance_id: p::InstanceId::new_v4(),
+            id: p::Id::new_v4(),
             description: get_description(description),
             list: vec![convert_block(&*run, args.clone(), units, used.clone())?],
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(run_on),
-            args,
+            args: args.map(Into::into),
         },
         Pipeline::List { list, description, mode, run_on } => p::Pipeline::List {
-            instance_id: p::InstanceId::new_v4(),
+            id: p::Id::new_v4(),
             description: get_description(description),
             list: list
                 .iter()
@@ -74,10 +74,10 @@ fn convert_block<'a>(
                 .collect::<Result<Vec<p::Pipeline>, Error>>()?,
             mode: mode.into(),
             run_on: convert_status_list(run_on),
-            args,
+            args: args.map(Into::into),
         },
         Pipeline::DefaultList(list) => p::Pipeline::List {
-            instance_id: p::InstanceId::new_v4(),
+            id: p::Id::new_v4(),
             description: None,
             list: list
                 .iter()
@@ -85,11 +85,11 @@ fn convert_block<'a>(
                 .collect::<Result<Vec<p::Pipeline>, Error>>()?,
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(&Vec::new()),
-            args,
+            args: args.map(Into::into),
         },
         Pipeline::On { condition, description, on_success, on_error, on_abort } => {
             p::Pipeline::On {
-                instance_id: p::InstanceId::new_v4(),
+                id: p::Id::new_v4(),
                 description: get_description(description),
                 cond: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
                 success: on_success
@@ -107,22 +107,22 @@ fn convert_block<'a>(
                     .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
                     .transpose()?
                     .map(Box::new),
-                args,
+                args: args.map(Into::into),
             }
         }
         Pipeline::ProgramSingleCommand { cmd, location, description } => p::Pipeline::Program {
-            instance_id: p::InstanceId::new_v4(),
+            id: p::Id::new_v4(),
             description: get_description(description),
             cmds: vec![cmd.into()],
             location: location.into(),
-            args,
+            args: args.map(Into::into),
         },
         Pipeline::ProgramMultipleCommands { cmds, location, description } => p::Pipeline::Program {
-            instance_id: p::InstanceId::new_v4(),
+            id: p::Id::new_v4(),
             description: get_description(description),
             cmds: cmds.iter().map(Into::into).collect(),
             location: location.into(),
-            args,
+            args: args.map(Into::into),
         },
         Pipeline::Reference { id, args } => {
             if used.contains(&id.as_ref()) {
@@ -178,16 +178,16 @@ impl Into<p::Status> for &Status {
 
 impl Into<p::Command> for &Command {
     fn into(self) -> p::Command {
-        p::Command { name: self.cmd.to_owned(), args: self.args.as_ref().map(Into::into) }
+        p::Command { name: self.cmd.to_owned(), args: self.args.clone().map(Into::into) }
     }
 }
 
-impl Into<p::CommandArguments> for &CommandArguments {
-    fn into(self) -> p::CommandArguments {
+impl Into<p::Arguments> for Arguments {
+    fn into(self) -> p::Arguments {
         match self {
-            CommandArguments::Map(map) => p::CommandArguments::Map(map.to_owned()),
-            CommandArguments::List(list) => p::CommandArguments::List(list.to_owned()),
-            CommandArguments::String(string) => p::CommandArguments::String(string.to_owned()),
+            Arguments::Map(map) => p::Arguments::Map(map.to_owned()),
+            Arguments::List(list) => p::Arguments::List(list.to_owned()),
+            Arguments::String(string) => p::Arguments::String(string.to_owned()),
         }
     }
 }

@@ -4,7 +4,7 @@ mod wasm;
 
 use crate::{environment::Environment, template::render};
 use derivative::Derivative;
-use pipeline::{Arguments, Command, InstanceId, Location, Pipeline};
+use pipeline::{Arguments, Command, Id, Location, Pipeline};
 use std::{collections::HashMap, convert::TryFrom, path::Path};
 
 pub use error::Error;
@@ -12,16 +12,16 @@ pub use error::Error;
 #[derive(Derivative)]
 #[derivative(Debug, Default)]
 pub struct Programs {
-    references: HashMap<Vec<InstanceId>, Reference>,
-    binaries: HashMap<Vec<InstanceId>, Binary>,
+    references: HashMap<Vec<Id>, Reference>,
+    binaries: HashMap<Vec<Id>, Binary>,
 }
 
 impl Programs {
     pub fn run(
         &self,
-        id: &[InstanceId],
+        id: &[Id],
         cmds: &[Command],
-        args: &Arguments,
+        args: &Option<Arguments>,
         env: Environment,
     ) -> Result<Environment, Error> {
         if let Some(binary) = self.binaries.get(id) {
@@ -34,7 +34,7 @@ impl Programs {
     }
 }
 
-type References = Vec<(Vec<InstanceId>, Reference)>;
+type References = Vec<(Vec<Id>, Reference)>;
 
 impl TryFrom<(&Pipeline, &Path)> for Programs {
     type Error = Error;
@@ -68,7 +68,7 @@ enum Reference {
 }
 
 impl Reference {
-    fn load(&self, args: &Arguments, workspace: &Path) -> Result<Binary, Error> {
+    fn load(&self, args: &Option<Arguments>, workspace: &Path) -> Result<Binary, Error> {
         Ok(match self {
             Self::Wasm(uri) => Binary::Wasm(wasm::load(&render(&uri, &args)?)?),
             Self::Oci(repository, image) => Binary::Oci(oci::load(
@@ -96,36 +96,36 @@ impl Binary {
     }
 }
 
-fn prepare(pipeline: &Pipeline, mut id: Vec<InstanceId>, references: &mut References) {
+fn prepare(pipeline: &Pipeline, mut ids: Vec<Id>, references: &mut References) {
     match pipeline {
-        Pipeline::List { list, instance_id, .. } => {
-            id.push(instance_id.clone());
+        Pipeline::List { list, id, .. } => {
+            ids.push(id.clone());
             for pipeline in list {
-                prepare(pipeline, id.clone(), references)
+                prepare(pipeline, ids.clone(), references)
             }
         }
-        Pipeline::On { cond, success, error, abort, instance_id, .. } => {
-            id.push(instance_id.clone());
-            prepare(cond, id.clone(), references);
+        Pipeline::On { cond, success, error, abort, id, .. } => {
+            ids.push(id.clone());
+            prepare(cond, ids.clone(), references);
 
             if let Some(pipeline) = success {
-                prepare(pipeline, id.clone(), references);
+                prepare(pipeline, ids.clone(), references);
             }
             if let Some(pipeline) = error {
-                prepare(pipeline, id.clone(), references);
+                prepare(pipeline, ids.clone(), references);
             }
 
             if let Some(pipeline) = abort {
-                prepare(pipeline, id.clone(), references);
+                prepare(pipeline, ids.clone(), references);
             }
         }
-        Pipeline::Program { location, instance_id, .. } => {
-            id.push(instance_id.clone());
+        Pipeline::Program { location, id, .. } => {
+            ids.push(id.clone());
             references.push(match location {
                 Location::Oci { repository, image } => {
-                    (id, Reference::Oci(repository.clone(), image.clone()))
+                    (ids, Reference::Oci(repository.clone(), image.clone()))
                 }
-                Location::Wasm { uri } => (id, Reference::Wasm(uri.clone())),
+                Location::Wasm { uri } => (ids, Reference::Wasm(uri.clone())),
             });
         }
     }

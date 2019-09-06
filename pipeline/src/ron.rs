@@ -11,8 +11,6 @@ pub fn parse(content: &[u8]) -> Result<pipeline::Pipeline, error::Error> {
     Ok(ron::de::from_bytes::<Data>(content).map_err(Error::Parse)?.try_into()?)
 }
 
-pub type Arguments = Option<HashMap<String, String>>;
-
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Clone)]
 pub struct Data {
@@ -59,7 +57,7 @@ pub enum Pipeline {
     },
     Reference {
         id: String,
-        args: Arguments,
+        args: Option<Arguments>,
     },
     On {
         condition: Box<Pipeline>,
@@ -112,13 +110,13 @@ pub enum Location {
 pub struct Command {
     pub cmd: String,
     #[serde(default)]
-    pub args: Option<CommandArguments>,
+    pub args: Option<Arguments>,
 }
 
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Clone)]
 #[serde(untagged)]
-pub enum CommandArguments {
+pub enum Arguments {
     Map(HashMap<String, String>),
     List(Vec<String>),
     String(String),
