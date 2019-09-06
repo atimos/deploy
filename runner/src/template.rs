@@ -1,6 +1,6 @@
-use serde_json::json;
 use handlebars::{Handlebars, TemplateRenderError};
 use pipeline::Arguments;
+use serde_json::json;
 
 pub fn render(tpl: &str, args: &Option<Arguments>) -> Result<String, TemplateRenderError> {
     Ok(match args {
@@ -14,6 +14,6 @@ pub fn render(tpl: &str, args: &Option<Arguments>) -> Result<String, TemplateRen
             hb.set_strict_mode(true);
             hb.render_template(&tpl, &args)?
         }
-        None => tpl.into()
+        None => tpl.into(),
     })
 }
