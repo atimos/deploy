@@ -1,38 +1,26 @@
 use crate::{environment::Environment, program::Programs};
-use pipeline::{Arguments, Command, Id, Pipeline};
+use pipeline::{Arguments, Block, Command, InstanceId};
 
 pub enum Error {}
 
-pub fn pipeline(
-    pipeline: &Pipeline,
-    mut ids: Vec<Id>,
-    programs: &Programs,
-    env: Environment,
-) -> Result<Environment, (Error, Environment)> {
-    match pipeline {
-        Pipeline::List { list, id, .. } => {
-            ids.push(id.clone());
-            self::list(ids, programs, env, &list)
+pub type Result = std::result::Result<Environment, (Error, Environment)>;
+pub type Args = Option<Arguments>;
+
+pub fn block(block: &Block, programs: &Programs, env: Environment) -> Result {
+    match block {
+        Block::List { list, .. } => self::list(programs, env, &list),
+        Block::On { condition, success, error, abort, .. } => {
+            self::condition(programs, env, condition, success, error, abort)
         }
-        Pipeline::On { cond, success, error, abort, id, .. } => {
-            ids.push(id.clone());
-            condition(ids, programs, env, cond, success, error, abort)
-        }
-        Pipeline::Program { cmds, args, id, .. } => {
-            ids.push(id.clone());
-            program(ids, programs, env, cmds, args)
+        Block::Commands { commands, arguments, id, .. } => {
+            self::command(id, programs, env, commands, arguments)
         }
     }
 }
 
-fn list(
-    ids: Vec<Id>,
-    programs: &Programs,
-    mut env: Environment,
-    list: &[Pipeline],
-) -> Result<Environment, (Error, Environment)> {
-    for pipeline in list {
-        match self::pipeline(pipeline, ids.clone(), programs, env) {
+fn list(programs: &Programs, mut env: Environment, list: &[Block]) -> Result {
+    for block in list {
+        match self::block(block, programs, env) {
             Ok(new_env) | Err((_, new_env)) => env = new_env,
         }
     }
@@ -40,36 +28,35 @@ fn list(
 }
 
 fn condition(
-    ids: Vec<Id>,
     programs: &Programs,
     env: Environment,
-    cond: &Pipeline,
-    success: &Option<Box<Pipeline>>,
-    error: &Option<Box<Pipeline>>,
-    abort: &Option<Box<Pipeline>>,
-) -> Result<Environment, (Error, Environment)> {
-    pipeline(cond, ids.clone(), programs, env.clone());
+    cond: &Block,
+    success: &Option<Box<Block>>,
+    error: &Option<Box<Block>>,
+    abort: &Option<Box<Block>>,
+) -> Result {
+    block(cond, programs, env.clone());
 
-    if let Some(pipeline) = success {
-        self::pipeline(pipeline, ids.clone(), programs, env.clone());
+    if let Some(block) = success {
+        self::block(block, programs, env.clone());
     }
-    if let Some(pipeline) = error {
-        self::pipeline(pipeline, ids.clone(), programs, env.clone());
+    if let Some(block) = error {
+        self::block(block, programs, env.clone());
     }
 
-    if let Some(pipeline) = abort {
-        self::pipeline(pipeline, ids.clone(), programs, env.clone());
+    if let Some(block) = abort {
+        self::block(block, programs, env.clone());
     }
     Ok(env)
 }
 
-fn program(
-    ids: Vec<Id>,
+fn command(
+    id: &InstanceId,
     programs: &Programs,
     env: Environment,
     cmds: &[Command],
-    args: &Option<Arguments>,
-) -> Result<Environment, (Error, Environment)> {
-    programs.run(&ids, cmds, args, env.clone());
+    args: &Args,
+) -> Result {
+    programs.run(id, cmds, args, env.clone());
     Ok(env)
 }

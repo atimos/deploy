@@ -1,6 +1,6 @@
 use crate::environment::Environment;
 use derivative::Derivative;
-use pipeline::Command;
+use pipeline::{Command, InstanceId};
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -11,7 +11,12 @@ pub enum Error {
 pub fn load(uri: &str) -> Result<Vec<u8>, Error> {
     Ok(Vec::new())
 }
-pub fn run(bin: &[u8], cmds: &[Command], env: Environment) -> Result<Environment, Error> {
-    println!("WASM: {:?}", cmds);
+pub fn run(
+    bin: &[u8],
+    cmds: &[Command],
+    env: Environment,
+    id: &InstanceId,
+) -> Result<Environment, Error> {
+    println!("WASM ({:?}): {:?}", id, cmds);
     Ok(env)
 }

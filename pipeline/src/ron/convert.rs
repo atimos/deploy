@@ -2,10 +2,12 @@ use super::*;
 use crate::pipeline as p;
 use derivative::Derivative;
 use ron::de::Error as RonError;
-use std::{collections::HashMap, convert::TryInto};
+use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
-type Units = HashMap<String, Pipeline>;
+type Units = HashMap<String, Block>;
 type Used<'a> = Vec<&'a str>;
+type Args = Option<Arguments>;
+type Result = StdResult<p::Block, Error>;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
@@ -42,102 +44,91 @@ impl From<RonError> for Error {
     }
 }
 
-impl TryInto<p::Pipeline> for Data {
+impl TryInto<p::Block> for Data {
     type Error = Error;
 
-    fn try_into(self) -> Result<p::Pipeline, Error> {
+    fn try_into(self) -> Result {
         convert_block(&self.pipeline, None, &self.units, Vec::new())
     }
 }
 
-fn convert_block<'a>(
-    block: &'a Pipeline,
-    args: Option<Arguments>,
-    units: &'a Units,
-    mut used: Used<'a>,
-) -> Result<p::Pipeline, Error> {
+fn convert_block<'a>(block: &'a Block, args: Args, units: &'a Units, used: Used<'a>) -> Result {
     Ok(match block {
-        Pipeline::One { run, description, run_on } => p::Pipeline::List {
-            id: p::Id::new_v4(),
+        Block::One { run, description, run_on } => p::Block::List {
             description: get_description(description),
             list: vec![convert_block(&*run, args.clone(), units, used.clone())?],
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(run_on),
-            args: args.map(Into::into),
+            arguments: args.map(Into::into),
         },
-        Pipeline::List { list, description, mode, run_on } => p::Pipeline::List {
-            id: p::Id::new_v4(),
+        Block::List { list, description, mode, run_on } => p::Block::List {
             description: get_description(description),
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<Result<Vec<p::Pipeline>, Error>>()?,
+                .collect::<StdResult<Vec<p::Block>, Error>>()?,
             mode: mode.into(),
             run_on: convert_status_list(run_on),
-            args: args.map(Into::into),
+            arguments: args.map(Into::into),
         },
-        Pipeline::DefaultList(list) => p::Pipeline::List {
-            id: p::Id::new_v4(),
+        Block::DefaultList(list) => p::Block::List {
             description: None,
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<Result<Vec<p::Pipeline>, Error>>()?,
+                .collect::<StdResult<Vec<p::Block>, Error>>()?,
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(&Vec::new()),
-            args: args.map(Into::into),
+            arguments: args.map(Into::into),
         },
-        Pipeline::On { condition, description, on_success, on_error, on_abort } => {
-            p::Pipeline::On {
-                id: p::Id::new_v4(),
-                description: get_description(description),
-                cond: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
-                success: on_success
-                    .as_ref()
-                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                    .transpose()?
-                    .map(Box::new),
-                error: on_error
-                    .as_ref()
-                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                    .transpose()?
-                    .map(Box::new),
-                abort: on_abort
-                    .as_ref()
-                    .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
-                    .transpose()?
-                    .map(Box::new),
-                args: args.map(Into::into),
-            }
-        }
-        Pipeline::ProgramSingleCommand { cmd, location, description } => p::Pipeline::Program {
-            id: p::Id::new_v4(),
+        Block::On { condition, description, on_success, on_error, on_abort } => p::Block::On {
             description: get_description(description),
-            cmds: vec![cmd.into()],
-            location: location.into(),
-            args: args.map(Into::into),
+            condition: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
+            success: on_success
+                .as_ref()
+                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                .transpose()?
+                .map(Box::new),
+            error: on_error
+                .as_ref()
+                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                .transpose()?
+                .map(Box::new),
+            abort: on_abort
+                .as_ref()
+                .map(|block| convert_block(&*block, args.clone(), units, used.clone()))
+                .transpose()?
+                .map(Box::new),
+            arguments: args.map(Into::into),
         },
-        Pipeline::ProgramMultipleCommands { cmds, location, description } => p::Pipeline::Program {
-            id: p::Id::new_v4(),
+        Block::Command { command, location, description } => p::Block::Commands {
+            id: p::InstanceId::new_v4(),
             description: get_description(description),
-            cmds: cmds.iter().map(Into::into).collect(),
+            commands: vec![command.into()],
             location: location.into(),
-            args: args.map(Into::into),
+            arguments: args.map(Into::into),
         },
-        Pipeline::Reference { id, args } => {
-            if used.contains(&id.as_ref()) {
-                used.push(id);
-                return Err(Error::Recursion(used.into_iter().map(String::from).collect()));
-            }
-
-            if let Some(unit) = units.get(id) {
-                used.push(id);
-                convert_block(unit, args.clone(), units, used)?
-            } else {
-                return Err(Error::NotFound(id.to_owned()));
-            }
-        }
+        Block::Commands { commands, location, description } => p::Block::Commands {
+            id: p::InstanceId::new_v4(),
+            description: get_description(description),
+            commands: commands.iter().map(Into::into).collect(),
+            location: location.into(),
+            arguments: args.map(Into::into),
+        },
+        Block::Reference { id, arguments } => convert_reference(id, arguments, units, used)?,
     })
+}
+
+fn convert_reference<'a>(id: &'a str, args: &Args, units: &Units, mut used: Used<'a>) -> Result {
+    if used.contains(&id.as_ref()) {
+        used.push(id);
+        Err(Error::Recursion(used.into_iter().map(String::from).collect()))
+    } else if let Some(unit) = units.get(id) {
+        used.push(id);
+        convert_block(unit, args.clone(), units, used)
+    } else {
+        return Err(Error::NotFound(id.to_owned()));
+    }
 }
 
 fn get_description(description: &str) -> Option<String> {
@@ -178,7 +169,7 @@ impl Into<p::Status> for &Status {
 
 impl Into<p::Command> for &Command {
     fn into(self) -> p::Command {
-        p::Command { name: self.cmd.to_owned(), args: self.args.clone().map(Into::into) }
+        p::Command { name: self.name.to_owned(), arguments: self.args.clone().map(Into::into) }
     }
 }
 

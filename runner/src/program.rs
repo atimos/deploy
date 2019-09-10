@@ -4,44 +4,44 @@ mod wasm;
 
 use crate::{environment::Environment, template::render};
 use derivative::Derivative;
-use pipeline::{Arguments, Command, Id, Location, Pipeline};
+use pipeline::{Arguments, Block, Command, InstanceId, Location};
 use std::{collections::HashMap, convert::TryFrom, path::Path};
 
 pub use error::Error;
 
+type References = Vec<(InstanceId, Reference)>;
+
 #[derive(Derivative)]
 #[derivative(Debug, Default)]
 pub struct Programs {
-    references: HashMap<Vec<Id>, Reference>,
-    binaries: HashMap<Vec<Id>, Binary>,
+    references: HashMap<InstanceId, Reference>,
+    binaries: HashMap<InstanceId, Binary>,
 }
 
 impl Programs {
     pub fn run(
         &self,
-        id: &[Id],
+        id: &InstanceId,
         cmds: &[Command],
         args: &Option<Arguments>,
         env: Environment,
     ) -> Result<Environment, Error> {
         if let Some(binary) = self.binaries.get(id) {
-            return binary.run(cmds, env);
+            return binary.run(cmds, env, id);
         }
         if let Some(reference) = self.references.get(id) {
-            return reference.load(args, &env.workspace)?.run(cmds, env);
+            return reference.load(args, &env.workspace)?.run(cmds, env, id);
         }
         Ok(env)
     }
 }
 
-type References = Vec<(Vec<Id>, Reference)>;
-
-impl TryFrom<(&Pipeline, &Path)> for Programs {
+impl TryFrom<(&Block, &Path)> for Programs {
     type Error = Error;
 
-    fn try_from((pipeline, workspace): (&Pipeline, &Path)) -> Result<Self, Self::Error> {
+    fn try_from((pipeline, workspace): (&Block, &Path)) -> Result<Self, Self::Error> {
         let mut references = References::new();
-        prepare(pipeline, Vec::new(), &mut references);
+        get(pipeline, &mut references);
         let mut programs = Self::default();
 
         for (id, reference) in references {
@@ -88,44 +88,46 @@ enum Binary {
 }
 
 impl Binary {
-    fn run(&self, cmds: &[Command], env: Environment) -> Result<Environment, Error> {
+    fn run(
+        &self,
+        cmds: &[Command],
+        env: Environment,
+        id: &InstanceId,
+    ) -> Result<Environment, Error> {
         Ok(match self {
-            Self::Wasm(bin) => wasm::run(bin, &cmds, env)?,
-            Self::Oci(container) => oci::run(container, &cmds, env)?,
+            Self::Wasm(bin) => wasm::run(bin, &cmds, env, id)?,
+            Self::Oci(container) => oci::run(container, &cmds, env, id)?,
         })
     }
 }
 
-fn prepare(pipeline: &Pipeline, mut ids: Vec<Id>, references: &mut References) {
+fn get(pipeline: &Block, references: &mut References) {
     match pipeline {
-        Pipeline::List { list, id, .. } => {
-            ids.push(id.clone());
+        Block::List { list, .. } => {
             for pipeline in list {
-                prepare(pipeline, ids.clone(), references)
+                get(pipeline, references)
             }
         }
-        Pipeline::On { cond, success, error, abort, id, .. } => {
-            ids.push(id.clone());
-            prepare(cond, ids.clone(), references);
+        Block::On { condition, success, error, abort, .. } => {
+            get(condition, references);
 
-            if let Some(pipeline) = success {
-                prepare(pipeline, ids.clone(), references);
+            if let Some(block) = success {
+                get(block, references);
             }
-            if let Some(pipeline) = error {
-                prepare(pipeline, ids.clone(), references);
+            if let Some(block) = error {
+                get(block, references);
             }
 
-            if let Some(pipeline) = abort {
-                prepare(pipeline, ids.clone(), references);
+            if let Some(block) = abort {
+                get(block, references);
             }
         }
-        Pipeline::Program { location, id, .. } => {
-            ids.push(id.clone());
+        Block::Commands { location, id, .. } => {
             references.push(match location {
                 Location::Oci { repository, image } => {
-                    (ids, Reference::Oci(repository.clone(), image.clone()))
+                    (id.clone(), Reference::Oci(repository.clone(), image.clone()))
                 }
-                Location::Wasm { uri } => (ids, Reference::Wasm(uri.clone())),
+                Location::Wasm { uri } => (id.clone(), Reference::Wasm(uri.clone())),
             });
         }
     }

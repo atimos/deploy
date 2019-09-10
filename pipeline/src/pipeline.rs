@@ -1,35 +1,32 @@
 use derivative::Derivative;
 use std::collections::HashMap;
-use uuid::Uuid;
 
-pub type Id = Uuid;
+pub type InstanceId = uuid::Uuid;
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub enum Pipeline {
-    Program {
-        id: Id,
+pub enum Block {
+    Commands {
+        id: InstanceId,
         description: Option<String>,
-        cmds: Vec<Command>,
+        commands: Vec<Command>,
         location: Location,
-        args: Option<Arguments>,
+        arguments: Option<Arguments>,
     },
     List {
-        id: Id,
         description: Option<String>,
-        list: Vec<Pipeline>,
+        list: Vec<Block>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
-        args: Option<Arguments>,
+        arguments: Option<Arguments>,
     },
     On {
-        id: Id,
         description: Option<String>,
-        cond: Box<Pipeline>,
-        success: Option<Box<Pipeline>>,
-        error: Option<Box<Pipeline>>,
-        abort: Option<Box<Pipeline>>,
-        args: Option<Arguments>,
+        condition: Box<Block>,
+        success: Option<Box<Block>>,
+        error: Option<Box<Block>>,
+        abort: Option<Box<Block>>,
+        arguments: Option<Arguments>,
     },
 }
 
@@ -37,7 +34,7 @@ pub enum Pipeline {
 #[derivative(Debug)]
 pub struct Command {
     pub name: String,
-    pub args: Option<Arguments>,
+    pub arguments: Option<Arguments>,
 }
 
 #[derive(Derivative)]

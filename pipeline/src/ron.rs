@@ -7,40 +7,41 @@ use std::{collections::HashMap, convert::TryInto};
 
 pub use convert::Error;
 
-pub fn parse(content: &[u8]) -> Result<pipeline::Pipeline, error::Error> {
+pub fn parse(content: &[u8]) -> Result<pipeline::Block, error::Error> {
     Ok(ron::de::from_bytes::<Data>(content).map_err(Error::Parse)?.try_into()?)
 }
 
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Clone)]
 pub struct Data {
-    pub pipeline: Pipeline,
+    pub pipeline: Block,
     #[serde(default)]
-    pub units: HashMap<String, Pipeline>,
+    pub units: HashMap<String, Block>,
 }
 
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Clone)]
 #[serde(untagged)]
-pub enum Pipeline {
-    ProgramSingleCommand {
+pub enum Block {
+    Command {
         #[serde(flatten)]
-        cmd: Command,
-        #[serde(flatten)]
-        location: Location,
-        #[serde(default)]
-        description: String,
-    },
-    ProgramMultipleCommands {
-        cmds: Vec<Command>,
+        command: Command,
         #[serde(flatten)]
         location: Location,
         #[serde(default)]
         description: String,
     },
-    DefaultList(Vec<Pipeline>),
+    Commands {
+        #[serde(rename = "cmds")]
+        commands: Vec<Command>,
+        #[serde(flatten)]
+        location: Location,
+        #[serde(default)]
+        description: String,
+    },
+    DefaultList(Vec<Block>),
     List {
-        list: Vec<Pipeline>,
+        list: Vec<Block>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -49,7 +50,7 @@ pub enum Pipeline {
         run_on: Vec<Status>,
     },
     One {
-        run: Box<Pipeline>,
+        run: Box<Block>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -57,18 +58,18 @@ pub enum Pipeline {
     },
     Reference {
         id: String,
-        args: Option<Arguments>,
+        arguments: Option<Arguments>,
     },
     On {
-        condition: Box<Pipeline>,
+        condition: Box<Block>,
         #[serde(default)]
         description: String,
         #[serde(default)]
-        on_success: Option<Box<Pipeline>>,
+        on_success: Option<Box<Block>>,
         #[serde(default)]
-        on_error: Option<Box<Pipeline>>,
+        on_error: Option<Box<Block>>,
         #[serde(default)]
-        on_abort: Option<Box<Pipeline>>,
+        on_abort: Option<Box<Block>>,
     },
 }
 
@@ -108,7 +109,8 @@ pub enum Location {
 #[derive(Derivative, Deserialize)]
 #[derivative(Debug, Clone)]
 pub struct Command {
-    pub cmd: String,
+    #[serde(rename = "cmd")]
+    pub name: String,
     #[serde(default)]
     pub args: Option<Arguments>,
 }

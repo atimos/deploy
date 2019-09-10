@@ -5,7 +5,7 @@ mod template;
 
 use derivative::Derivative;
 use environment::{Environment, Status};
-use pipeline::Pipeline;
+use pipeline::Block;
 use program::Programs;
 use std::{convert::TryFrom, path::PathBuf};
 use uuid::Uuid;
@@ -17,7 +17,7 @@ pub struct Runner {
 }
 
 impl Runner {
-    pub fn add(&mut self, pipeline: Pipeline) {
+    pub fn add(&mut self, pipeline: Block) {
         self.jobs.push(Job::load(pipeline, PathBuf::from(String::from("./deploy/"))));
     }
 
@@ -30,15 +30,15 @@ impl Runner {
 
 #[derive(Derivative)]
 #[derivative(Debug)]
-pub struct Job {
+struct Job {
     instance_id: Uuid,
-    pipeline: Pipeline,
+    pipeline: Block,
     programs: Programs,
     environment: Environment,
 }
 
 impl<'a> Job {
-    pub fn load(pipeline: Pipeline, workspace: PathBuf) -> Self {
+    pub fn load(pipeline: Block, workspace: PathBuf) -> Self {
         Self {
             instance_id: Uuid::new_v4(),
             programs: Programs::try_from((&pipeline, workspace.as_ref())).unwrap(),
@@ -54,6 +54,6 @@ impl<'a> Job {
     }
 
     pub fn run(&self) {
-        run::pipeline(&self.pipeline, Vec::new(), &self.programs, self.environment.clone());
+        run::block(&self.pipeline, &self.programs, self.environment.clone());
     }
 }
