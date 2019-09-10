@@ -6,7 +6,7 @@ pub type InstanceId = uuid::Uuid;
 #[derive(Derivative)]
 #[derivative(Debug)]
 pub enum Block {
-    Commands {
+    Program {
         id: InstanceId,
         description: Option<String>,
         commands: Vec<Command>,

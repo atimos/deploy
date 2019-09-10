@@ -12,7 +12,7 @@ pub fn block(block: &Block, programs: &Programs, env: Environment) -> Result {
         Block::On { condition, success, error, abort, .. } => {
             self::condition(programs, env, condition, success, error, abort)
         }
-        Block::Commands { commands, arguments, id, .. } => {
+        Block::Program { commands, arguments, id, .. } => {
             self::command(id, programs, env, commands, arguments)
         }
     }

@@ -101,14 +101,14 @@ fn convert_block<'a>(block: &'a Block, args: Args, units: &'a Units, used: Used<
                 .map(Box::new),
             arguments: args.map(Into::into),
         },
-        Block::Command { command, location, description } => p::Block::Commands {
+        Block::Command { command, location, description } => p::Block::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: vec![command.into()],
             location: location.into(),
             arguments: args.map(Into::into),
         },
-        Block::Commands { commands, location, description } => p::Block::Commands {
+        Block::Commands { commands, location, description } => p::Block::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: commands.iter().map(Into::into).collect(),

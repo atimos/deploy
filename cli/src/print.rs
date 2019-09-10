@@ -45,7 +45,7 @@ pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
 
             println!("{})", indentation);
         }
-        pipeline::Block::Commands { description, location, commands, .. } => {
+        pipeline::Block::Program { description, location, commands, id, .. } => {
             print!("{}", indentation);
             match location {
                 pipeline::Location::Oci { repository, image } => {
@@ -72,7 +72,7 @@ pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
                     .join("\", \"")
             );
 
-            println!(")");
+            println!(" id: \"{:?}\")", id);
         }
     }
 }

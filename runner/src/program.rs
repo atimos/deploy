@@ -122,7 +122,7 @@ fn get(pipeline: &Block, references: &mut References) {
                 get(block, references);
             }
         }
-        Block::Commands { location, id, .. } => {
+        Block::Program { location, id, .. } => {
             references.push(match location {
                 Location::Oci { repository, image } => {
                     (id.clone(), Reference::Oci(repository.clone(), image.clone()))
