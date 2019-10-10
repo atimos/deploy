@@ -5,7 +5,6 @@ authors = ["Alexander Seppälä <dev@timot.se>"]
 edition = "2018"
 
 [dependencies]
-structopt = "0.2.15"
+structopt = "0.3"
 pipeline = {path = "../pipeline"}
 runner = {path = "../runner"}
-derivative = "1.0.2"

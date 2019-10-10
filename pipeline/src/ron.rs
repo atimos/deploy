@@ -1,7 +1,6 @@
 mod convert;
 
 use crate::{error, pipeline};
-use derivative::Derivative;
 use serde::Deserialize;
 use std::{collections::HashMap, convert::TryInto};
 
@@ -11,16 +10,14 @@ pub fn parse(content: &[u8]) -> Result<pipeline::Block, error::Error> {
     Ok(ron::de::from_bytes::<Data>(content).map_err(Error::Parse)?.try_into()?)
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct Data {
     pub pipeline: Block,
     #[serde(default)]
     pub units: HashMap<String, Block>,
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Block {
     Command {
@@ -73,11 +70,9 @@ pub enum Block {
     },
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone, Default)]
+#[derive(Clone, Deserialize)]
 pub enum ExecutionMode {
     #[serde(rename = "sequence-stop-on-error")]
-    #[derivative(Default)]
     SequenceStopOnError,
     #[serde(rename = "sequence-run-all")]
     SequenceRunAll,
@@ -85,8 +80,13 @@ pub enum ExecutionMode {
     Parallel,
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+impl Default for ExecutionMode {
+    fn default() -> Self {
+        Self::SequenceStopOnError
+    }
+}
+
+#[derive(Clone, Deserialize)]
 pub enum Status {
     #[serde(rename = "error")]
     Error,
@@ -96,8 +96,7 @@ pub enum Status {
     Abort,
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(tag = "type")]
 pub enum Location {
     #[serde(rename = "wasm")]
@@ -106,8 +105,7 @@ pub enum Location {
     Oci { repo: String, image: String },
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+#[derive(Clone, Deserialize)]
 pub struct Command {
     #[serde(rename = "cmd")]
     pub name: String,
@@ -115,8 +113,7 @@ pub struct Command {
     pub args: Option<Arguments>,
 }
 
-#[derive(Derivative, Deserialize)]
-#[derivative(Debug, Clone)]
+#[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Arguments {
     Map(HashMap<String, String>),

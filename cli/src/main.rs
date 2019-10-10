@@ -1,6 +1,5 @@
 mod print;
 
-use derivative::Derivative;
 use pipeline::from_ron;
 use runner::Runner;
 use std::{fs::read, path::PathBuf};
@@ -8,8 +7,7 @@ use structopt::StructOpt;
 
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
-#[derive(Derivative, StructOpt)]
-#[derivative(Debug)]
+#[derive(StructOpt)]
 enum Cli {
     #[structopt(name = "print")]
     Print {

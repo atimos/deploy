@@ -1,8 +1,6 @@
 use crate::ron::Error as RonError;
-use derivative::Derivative;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub enum Error {
     Ron(RonError),
 }

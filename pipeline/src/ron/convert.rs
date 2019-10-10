@@ -1,6 +1,5 @@
 use super::*;
 use crate::pipeline as p;
-use derivative::Derivative;
 use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
@@ -9,8 +8,7 @@ type Used<'a> = Vec<&'a str>;
 type Args = Option<Arguments>;
 type Result = StdResult<p::Block, Error>;
 
-#[derive(Derivative)]
-#[derivative(Debug)]
+#[derive(Debug)]
 pub enum Error {
     Parse(RonError),
     NotFound(String),
