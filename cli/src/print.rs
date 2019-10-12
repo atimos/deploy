@@ -1,13 +1,11 @@
-pub fn verbose(pipeline: &pipeline::Block) {
-    println!("{:#?}", pipeline);
-}
+use pipeline::ExecutionMode;
 
-pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
+pub fn pretty(pipeline: &pipeline::Section, indentation: String) {
     let child_indentation = format!("    {}", indentation);
 
     match pipeline {
-        pipeline::Block::List { description, list, mode, .. } => {
-            print!("{}{:?}(", indentation, mode);
+        pipeline::Section::List { description, list, mode, .. } => {
+            print!("{}{}(", indentation, print_mode(mode));
             if let Some(description) = description {
                 print!("\"{}\" ", description);
             }
@@ -17,7 +15,7 @@ pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
             }
             println!("{}])", indentation);
         }
-        pipeline::Block::On { description, condition, success, error, abort, .. } => {
+        pipeline::Section::On { description, condition, success, error, abort, .. } => {
             let child_indentation = format!("    {}", child_indentation);
             print!("{}On(", indentation);
 
@@ -45,7 +43,7 @@ pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
 
             println!("{})", indentation);
         }
-        pipeline::Block::Program { description, location, commands, id, .. } => {
+        pipeline::Section::Program { description, location, commands, id, .. } => {
             print!("{}", indentation);
             match location {
                 pipeline::Location::Oci { repository, image } => {
@@ -74,5 +72,13 @@ pub fn pretty(pipeline: &pipeline::Block, indentation: String) {
 
             println!(" id: \"{:?}\")", id);
         }
+    }
+}
+
+fn print_mode(mode: &ExecutionMode) -> &'static str {
+    match mode {
+        ExecutionMode::SequenceStopOnError => "stop-on-error",
+        ExecutionMode::SequenceRunAll => "run-all",
+        ExecutionMode::Parallel => "parallel",
     }
 }

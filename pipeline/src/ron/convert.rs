@@ -1,85 +1,57 @@
 use super::*;
-use crate::pipeline as p;
+use crate::{error::ParseError, pipeline as p};
 use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
-type Units = HashMap<String, Block>;
+type Units = HashMap<String, Section>;
 type Used<'a> = Vec<&'a str>;
 type Args = Option<Arguments>;
-type Result = StdResult<p::Block, Error>;
+type Result = StdResult<p::Section, ParseError>;
 
-#[derive(Debug)]
-pub enum Error {
-    Parse(RonError),
-    NotFound(String),
-    Recursion(Vec<String>),
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        match self {
-            Self::Parse(err) => Some(err),
-            _ => None,
-        }
-    }
-}
-
-impl std::fmt::Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Parse(err) => write!(f, "{}", err),
-            Self::NotFound(uri) => write!(f, "Could not find unit \"{}\"", uri),
-            Self::Recursion(name_list) => {
-                write!(f, "Recursion found in {}", name_list.join(" -> "))
-            }
-        }
-    }
-}
-
-impl From<RonError> for Error {
+impl From<RonError> for ParseError {
     fn from(err: RonError) -> Self {
-        Self::Parse(err)
+        Self::Syntax(err)
     }
 }
 
-impl TryInto<p::Block> for Data {
-    type Error = Error;
+impl TryInto<p::Section> for Pipeline {
+    type Error = ParseError;
 
     fn try_into(self) -> Result {
         convert_block(&self.pipeline, None, &self.units, Vec::new())
     }
 }
 
-fn convert_block<'a>(block: &'a Block, args: Args, units: &'a Units, used: Used<'a>) -> Result {
+fn convert_block<'a>(block: &'a Section, args: Args, units: &'a Units, used: Used<'a>) -> Result {
     Ok(match block {
-        Block::One { run, description, run_on } => p::Block::List {
+        Section::One { run, description, run_on } => p::Section::List {
             description: get_description(description),
             list: vec![convert_block(&*run, args.clone(), units, used.clone())?],
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(run_on),
             arguments: args.map(Into::into),
         },
-        Block::List { list, description, mode, run_on } => p::Block::List {
+        Section::List { list, description, mode, run_on } => p::Section::List {
             description: get_description(description),
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<StdResult<Vec<p::Block>, Error>>()?,
+                .collect::<StdResult<Vec<p::Section>, ParseError>>()?,
             mode: mode.into(),
             run_on: convert_status_list(run_on),
             arguments: args.map(Into::into),
         },
-        Block::DefaultList(list) => p::Block::List {
+        Section::DefaultList(list) => p::Section::List {
             description: None,
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<StdResult<Vec<p::Block>, Error>>()?,
+                .collect::<StdResult<Vec<p::Section>, ParseError>>()?,
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(&Vec::new()),
             arguments: args.map(Into::into),
         },
-        Block::On { condition, description, on_success, on_error, on_abort } => p::Block::On {
+        Section::On { condition, description, on_success, on_error, on_abort } => p::Section::On {
             description: get_description(description),
             condition: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
             success: on_success
@@ -99,33 +71,33 @@ fn convert_block<'a>(block: &'a Block, args: Args, units: &'a Units, used: Used<
                 .map(Box::new),
             arguments: args.map(Into::into),
         },
-        Block::Command { command, location, description } => p::Block::Program {
+        Section::Command { command, location, description } => p::Section::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: vec![command.into()],
             location: location.into(),
             arguments: args.map(Into::into),
         },
-        Block::Commands { commands, location, description } => p::Block::Program {
+        Section::Commands { commands, location, description } => p::Section::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: commands.iter().map(Into::into).collect(),
             location: location.into(),
             arguments: args.map(Into::into),
         },
-        Block::Reference { id, arguments } => convert_reference(id, arguments, units, used)?,
+        Section::Reference { id, arguments } => convert_reference(id, arguments, units, used)?,
     })
 }
 
 fn convert_reference<'a>(id: &'a str, args: &Args, units: &Units, mut used: Used<'a>) -> Result {
     if used.contains(&id.as_ref()) {
         used.push(id);
-        Err(Error::Recursion(used.into_iter().map(String::from).collect()))
+        Err(ParseError::Recursion(used.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
         used.push(id);
         convert_block(unit, args.clone(), units, used)
     } else {
-        return Err(Error::NotFound(id.to_owned()));
+        return Err(ParseError::NotFound(id.to_owned()));
     }
 }
 

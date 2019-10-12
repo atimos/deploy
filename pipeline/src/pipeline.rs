@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 pub type InstanceId = uuid::Uuid;
 
-pub enum Block {
+pub enum Section {
     Program {
         id: InstanceId,
         description: Option<String>,
@@ -12,17 +12,17 @@ pub enum Block {
     },
     List {
         description: Option<String>,
-        list: Vec<Block>,
+        list: Vec<Section>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
         arguments: Option<Arguments>,
     },
     On {
         description: Option<String>,
-        condition: Box<Block>,
-        success: Option<Box<Block>>,
-        error: Option<Box<Block>>,
-        abort: Option<Box<Block>>,
+        condition: Box<Section>,
+        success: Option<Box<Section>>,
+        error: Option<Box<Section>>,
+        abort: Option<Box<Section>>,
         arguments: Option<Arguments>,
     },
 }
