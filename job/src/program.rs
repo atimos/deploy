@@ -52,6 +52,6 @@ fn get_programs(node: &Node, references: &mut Vec<(InstanceId, Program)>) {
     }
 }
 
-fn load_binary(referenec: &Reference, args: &Arguments) -> Result<Binary, ()> {
+fn load(referenec: &Reference, args: &Arguments) -> Result<Binary, ()> {
     Err(())
 }
