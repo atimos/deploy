@@ -1,10 +1,10 @@
 use pipeline::ExecutionMode;
 
-pub fn pretty(pipeline: &pipeline::Section, indentation: String) {
+pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
     let child_indentation = format!("    {}", indentation);
 
     match pipeline {
-        pipeline::Section::List { description, list, mode, .. } => {
+        pipeline::Node::List { description, list, mode, .. } => {
             print!("{}{}(", indentation, print_mode(mode));
             if let Some(description) = description {
                 print!("\"{}\" ", description);
@@ -15,7 +15,7 @@ pub fn pretty(pipeline: &pipeline::Section, indentation: String) {
             }
             println!("{}])", indentation);
         }
-        pipeline::Section::On { description, condition, success, error, abort, .. } => {
+        pipeline::Node::On { description, condition, success, error, abort, .. } => {
             let child_indentation = format!("    {}", child_indentation);
             print!("{}On(", indentation);
 
@@ -43,7 +43,7 @@ pub fn pretty(pipeline: &pipeline::Section, indentation: String) {
 
             println!("{})", indentation);
         }
-        pipeline::Section::Program { description, location, commands, id, .. } => {
+        pipeline::Node::Program { description, location, commands, id, .. } => {
             print!("{}", indentation);
             match location {
                 pipeline::Location::Oci { repository, image } => {

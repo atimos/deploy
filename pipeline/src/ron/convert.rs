@@ -3,10 +3,10 @@ use crate::{error::ParseError, pipeline as p};
 use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
-type Units = HashMap<String, Section>;
+type Units = HashMap<String, Node>;
 type Used<'a> = Vec<&'a str>;
 type Args = Option<Arguments>;
-type Result = StdResult<p::Section, ParseError>;
+type Result = StdResult<p::Node, ParseError>;
 
 impl From<RonError> for ParseError {
     fn from(err: RonError) -> Self {
@@ -14,7 +14,7 @@ impl From<RonError> for ParseError {
     }
 }
 
-impl TryInto<p::Section> for Pipeline {
+impl TryInto<p::Node> for Pipeline {
     type Error = ParseError;
 
     fn try_into(self) -> Result {
@@ -22,36 +22,36 @@ impl TryInto<p::Section> for Pipeline {
     }
 }
 
-fn convert_block<'a>(block: &'a Section, args: Args, units: &'a Units, used: Used<'a>) -> Result {
+fn convert_block<'a>(block: &'a Node, args: Args, units: &'a Units, used: Used<'a>) -> Result {
     Ok(match block {
-        Section::One { run, description, run_on } => p::Section::List {
+        Node::One { run, description, run_on } => p::Node::List {
             description: get_description(description),
             list: vec![convert_block(&*run, args.clone(), units, used.clone())?],
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(run_on),
             arguments: args.map(Into::into),
         },
-        Section::List { list, description, mode, run_on } => p::Section::List {
+        Node::List { list, description, mode, run_on } => p::Node::List {
             description: get_description(description),
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<StdResult<Vec<p::Section>, ParseError>>()?,
+                .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
             mode: mode.into(),
             run_on: convert_status_list(run_on),
             arguments: args.map(Into::into),
         },
-        Section::DefaultList(list) => p::Section::List {
+        Node::DefaultList(list) => p::Node::List {
             description: None,
             list: list
                 .iter()
                 .map(|item| convert_block(item, args.clone(), units, used.clone()))
-                .collect::<StdResult<Vec<p::Section>, ParseError>>()?,
+                .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
             mode: p::ExecutionMode::SequenceStopOnError,
             run_on: convert_status_list(&Vec::new()),
             arguments: args.map(Into::into),
         },
-        Section::On { condition, description, on_success, on_error, on_abort } => p::Section::On {
+        Node::On { condition, description, on_success, on_error, on_abort } => p::Node::On {
             description: get_description(description),
             condition: Box::new(convert_block(&*condition, args.clone(), units, used.clone())?),
             success: on_success
@@ -71,21 +71,21 @@ fn convert_block<'a>(block: &'a Section, args: Args, units: &'a Units, used: Use
                 .map(Box::new),
             arguments: args.map(Into::into),
         },
-        Section::Command { command, location, description } => p::Section::Program {
+        Node::Command { command, location, description } => p::Node::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: vec![command.into()],
             location: location.into(),
             arguments: args.map(Into::into),
         },
-        Section::Commands { commands, location, description } => p::Section::Program {
+        Node::Commands { commands, location, description } => p::Node::Program {
             id: p::InstanceId::new_v4(),
             description: get_description(description),
             commands: commands.iter().map(Into::into).collect(),
             location: location.into(),
             arguments: args.map(Into::into),
         },
-        Section::Reference { id, arguments } => convert_reference(id, arguments, units, used)?,
+        Node::Reference { id, arguments } => convert_reference(id, arguments, units, used)?,
     })
 }
 

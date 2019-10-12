@@ -1,9 +1,9 @@
-use pipeline::Section;
+use pipeline::Node;
 
 pub struct Programs(Vec<Program>);
 
 impl Programs {
-    pub fn new(pipeline: &Section) -> Self {
+    pub fn new(pipeline: &Node) -> Self {
         Programs(Vec::default())
     }
 }

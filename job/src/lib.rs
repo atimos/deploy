@@ -1,6 +1,6 @@
 mod program;
 
-use pipeline::Section;
+use pipeline::Node;
 use program::Programs;
 
 #[derive(Default)]
@@ -11,7 +11,7 @@ impl Jobs {
         Self(Vec::new())
     }
 
-    pub fn append(&mut self, pipeline: Section) {
+    pub fn append(&mut self, pipeline: Node) {
         self.0.push(Job::new(pipeline));
     }
 }
@@ -29,12 +29,12 @@ impl Iterator for Jobs {
 }
 
 pub struct Job {
-    pipeline: Section,
+    pipeline: Node,
     programs: Programs,
 }
 
 impl Job {
-    fn new(pipeline: Section) -> Self {
+    fn new(pipeline: Node) -> Self {
         Self { programs: Programs::new(&pipeline), pipeline }
     }
 

@@ -5,14 +5,14 @@ use std::collections::HashMap;
 
 #[derive(Clone, Deserialize)]
 pub struct Pipeline {
-    pub pipeline: Section,
+    pub pipeline: Node,
     #[serde(default)]
-    pub units: HashMap<String, Section>,
+    pub units: HashMap<String, Node>,
 }
 
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
-pub enum Section {
+pub enum Node {
     Command {
         #[serde(flatten)]
         command: Command,
@@ -29,9 +29,9 @@ pub enum Section {
         #[serde(default)]
         description: String,
     },
-    DefaultList(Vec<Section>),
+    DefaultList(Vec<Node>),
     List {
-        list: Vec<Section>,
+        list: Vec<Node>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -40,7 +40,7 @@ pub enum Section {
         run_on: Vec<Status>,
     },
     One {
-        run: Box<Section>,
+        run: Box<Node>,
         #[serde(default)]
         description: String,
         #[serde(default)]
@@ -51,15 +51,15 @@ pub enum Section {
         arguments: Option<Arguments>,
     },
     On {
-        condition: Box<Section>,
+        condition: Box<Node>,
         #[serde(default)]
         description: String,
         #[serde(default)]
-        on_success: Option<Box<Section>>,
+        on_success: Option<Box<Node>>,
         #[serde(default)]
-        on_error: Option<Box<Section>>,
+        on_error: Option<Box<Node>>,
         #[serde(default)]
-        on_abort: Option<Box<Section>>,
+        on_abort: Option<Box<Node>>,
     },
 }
 
