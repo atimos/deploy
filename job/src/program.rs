@@ -1,6 +1,8 @@
-use pipeline::{InstanceId, Location, Node};
+use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
 
+pub type Arguments = Option<pipeline::Arguments>;
+pub type Commands<'a> = &'a [Command];
 pub type Program = (Reference, Option<Binary>);
 pub struct Programs(HashMap<InstanceId, Program>);
 
@@ -10,6 +12,11 @@ impl Programs {
         get_programs(pipeline, &mut references);
 
         Programs(references.into_iter().collect())
+    }
+
+    pub fn run(&self, id: &InstanceId, ccmds: Commands, args: &Arguments) -> Result<(), ()> {
+        let program = &self.0[id];
+        Ok(())
     }
 }
 
@@ -45,3 +52,6 @@ fn get_programs(node: &Node, references: &mut Vec<(InstanceId, Program)>) {
     }
 }
 
+fn load_binary(referenec: &Reference, args: &Arguments) -> Result<Binary, ()> {
+    Err(())
+}
