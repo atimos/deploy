@@ -1,16 +1,12 @@
-use pipeline::Node;
+use pipeline::{InstanceId, Node};
+use std::collections::HashMap;
 
-pub struct Programs(Vec<Program>);
+pub struct Programs(HashMap<InstanceId, (Reference, Option<Binary>)>);
 
 impl Programs {
     pub fn new(pipeline: &Node) -> Self {
-        Programs(Vec::default())
+        Programs(HashMap::default())
     }
-}
-
-pub struct Program {
-    reference: Reference,
-    bin: Option<Binary>,
 }
 
 pub enum Reference {
