@@ -16,15 +16,7 @@ impl Programs {
 
     pub fn run(&self, id: &InstanceId, args: &Arguments, cmds: Commands) -> Result<(), ()> {
         let program = &self.0[id];
-        match &program.0 {
-            Reference::Wasm(uri) => {
-                dbg!(uri);
-            }
-            Reference::Oci(repo, image) => {
-                dbg!(repo, image);
-            }
-        }
-        Ok(())
+        load(&program.0, args).map(drop)
     }
 }
 
@@ -55,6 +47,15 @@ fn get_programs(node: &Node, references: &mut Vec<(InstanceId, Program)>) {
     }
 }
 
-fn load(referenec: &Reference, args: &Arguments) -> Result<Binary, ()> {
-    Err(())
+fn load(reference: &Reference, args: &Arguments) -> Result<Binary, ()> {
+    match reference {
+        Reference::Wasm(uri) => {
+            dbg!(uri);
+            Ok(Binary::Wasm(Vec::new()))
+        }
+        Reference::Oci(repo, image) => {
+            dbg!(repo, image);
+            Ok(Binary::Oci(String::new()))
+        }
+    }
 }
