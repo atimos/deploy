@@ -4,7 +4,7 @@ use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
 type Units = HashMap<String, Node>;
-type Used<'a> = Vec<&'a str>;
+type CircularCheck<'a> = Vec<&'a str>;
 type Args = Option<Arguments>;
 type Result = StdResult<p::Node, ParseError>;
 
@@ -26,7 +26,7 @@ fn convert_block<'a>(
     block: &'a Node,
     args: Args,
     units: &'a Units,
-    used: Used<'a>,
+    circular: CircularCheck<'a>,
     parent_run_on: &'a [Status],
 ) -> Result {
     Ok(match block {
@@ -34,7 +34,7 @@ fn convert_block<'a>(
             let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
             p::Node::List {
                 description: get_description(description),
-                list: vec![convert_block(&*node, args.clone(), units, used.clone(), run_on)?],
+                list: vec![convert_block(&*node, args.clone(), units, circular.clone(), run_on)?],
                 mode: p::ExecutionMode::Sequence,
                 run_on: convert_status_list(run_on),
                 arguments: args.map(Into::into),
@@ -46,7 +46,7 @@ fn convert_block<'a>(
                 description: get_description(description),
                 list: list
                     .iter()
-                    .map(|item| convert_block(item, args.clone(), units, used.clone(), run_on))
+                    .map(|item| convert_block(item, args.clone(), units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
                 mode: mode.into(),
                 run_on: convert_status_list(run_on),
@@ -57,7 +57,9 @@ fn convert_block<'a>(
             description: None,
             list: list
                 .iter()
-                .map(|item| convert_block(item, args.clone(), units, used.clone(), parent_run_on))
+                .map(|item| {
+                    convert_block(item, args.clone(), units, circular.clone(), parent_run_on)
+                })
                 .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
             mode: p::ExecutionMode::Sequence,
             run_on: convert_status_list(&Vec::new()),
@@ -87,7 +89,7 @@ fn convert_block<'a>(
         }
         Node::Reference { id, arguments, run_on } => {
             let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
-            convert_reference(id, arguments, units, used, run_on)?
+            convert_reference(id, arguments, units, circular, run_on)?
         }
     })
 }
@@ -96,15 +98,15 @@ fn convert_reference<'a>(
     id: &'a str,
     args: &Args,
     units: &Units,
-    mut used: Used<'a>,
+    mut circular: CircularCheck<'a>,
     run_on: &[Status],
 ) -> Result {
-    if used.contains(&id.as_ref()) {
-        used.push(id);
-        Err(ParseError::Recursion(used.into_iter().map(String::from).collect()))
+    if circular.contains(&id.as_ref()) {
+        circular.push(id);
+        Err(ParseError::Recursion(circular.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
-        used.push(id);
-        convert_block(unit, args.clone(), units, used, run_on)
+        circular.push(id);
+        convert_block(unit, args.clone(), units, circular, run_on)
     } else {
         return Err(ParseError::NotFound(id.to_owned()));
     }
