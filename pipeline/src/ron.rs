@@ -44,6 +44,7 @@ pub enum Node {
         run_on: Vec<Status>,
     },
     One {
+        #[serde(rename = "run")]
         node: Box<Node>,
         #[serde(default)]
         description: String,
@@ -53,6 +54,7 @@ pub enum Node {
     Reference {
         id: String,
         arguments: Option<Arguments>,
+        #[serde(default)]
         run_on: Vec<Status>,
     },
 }
