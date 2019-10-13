@@ -13,6 +13,8 @@ enum Cli {
     Print {
         #[structopt(default_value = "Pipeline.ron")]
         path: PathBuf,
+        #[structopt(short = "v", long = "verbose")]
+        verbose: bool,
     },
     #[structopt(name = "check")]
     Check {
@@ -28,7 +30,7 @@ enum Cli {
 
 fn main() {
     let result = match Cli::from_args() {
-        Cli::Print { path } => print(path),
+        Cli::Print { path, verbose } => print(path, verbose),
         Cli::Check { path } => check(path),
         Cli::Run { path } => run(path),
     };
@@ -38,9 +40,13 @@ fn main() {
     }
 }
 
-fn print(path: PathBuf) -> Result {
+fn print(path: PathBuf, verbose: bool) -> Result {
     let pipeline = from_ron(&read(path)?)?;
-    print::pretty(&pipeline, String::new());
+    if verbose {
+        print::verbose(&pipeline);
+    } else {
+        print::pretty(&pipeline, String::new());
+    }
     Ok(())
 }
 

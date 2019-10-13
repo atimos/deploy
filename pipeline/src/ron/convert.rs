@@ -18,7 +18,7 @@ impl TryInto<p::Node> for Pipeline {
     type Error = ParseError;
 
     fn try_into(self) -> Result {
-        convert_block(&self.pipeline, None, &self.units, Vec::new(), &[])
+        convert_block(&self.pipeline, None, &self.units, Vec::new(), &vec![Status::Success])
     }
 }
 
@@ -36,7 +36,7 @@ fn convert_block<'a>(
                 description: get_description(description),
                 list: vec![convert_block(&*node, args.clone(), units, circular.clone(), run_on)?],
                 mode: p::ExecutionMode::Sequence,
-                run_on: convert_status_list(run_on),
+                run_on: convert_run_on(run_on),
                 arguments: args.map(Into::into),
             }
         }
@@ -49,7 +49,7 @@ fn convert_block<'a>(
                     .map(|item| convert_block(item, args.clone(), units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
                 mode: mode.into(),
-                run_on: convert_status_list(run_on),
+                run_on: convert_run_on(run_on),
                 arguments: args.map(Into::into),
             }
         }
@@ -62,7 +62,7 @@ fn convert_block<'a>(
                 })
                 .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
             mode: p::ExecutionMode::Sequence,
-            run_on: convert_status_list(&Vec::new()),
+            run_on: convert_run_on(&Vec::new()),
             arguments: args.map(Into::into),
         },
         Node::Command { command, location, description, run_on } => {
@@ -73,7 +73,7 @@ fn convert_block<'a>(
                 commands: vec![command.into()],
                 location: location.into(),
                 arguments: args.map(Into::into),
-                run_on: convert_status_list(run_on),
+                run_on: convert_run_on(run_on),
             }
         }
         Node::Commands { commands, location, description, run_on } => {
@@ -84,7 +84,7 @@ fn convert_block<'a>(
                 commands: commands.iter().map(Into::into).collect(),
                 location: location.into(),
                 arguments: args.map(Into::into),
-                run_on: convert_status_list(run_on),
+                run_on: convert_run_on(run_on),
             }
         }
         Node::Reference { id, arguments, run_on } => {
@@ -120,14 +120,8 @@ fn get_description(description: &str) -> Option<String> {
     }
 }
 
-fn convert_status_list(list: &[Status]) -> Vec<p::Status> {
-    let list: Vec<p::Status> = list.iter().map(Into::into).collect();
-
-    if !list.is_empty() {
-        list
-    } else {
-        vec![p::Status::Success]
-    }
+fn convert_run_on(list: &[Status]) -> Vec<p::Status> {
+    list.iter().map(Into::into).collect()
 }
 
 impl Into<p::ExecutionMode> for &ExecutionMode {

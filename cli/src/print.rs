@@ -1,11 +1,13 @@
-use pipeline::ExecutionMode;
+pub fn verbose(pipeline: &pipeline::Node) {
+    dbg!(pipeline);
+}
 
 pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
     let child_indentation = format!("    {}", indentation);
 
     match pipeline {
         pipeline::Node::List { description, list, mode, .. } => {
-            print!("{}{}(", indentation, print_mode(mode));
+            print!("{}{:?}(", indentation, mode);
             if let Some(description) = description {
                 print!("\"{}\" ", description);
             }
@@ -44,12 +46,5 @@ pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
 
             println!(" id: \"{:?}\")", id);
         }
-    }
-}
-
-fn print_mode(mode: &ExecutionMode) -> &'static str {
-    match mode {
-        ExecutionMode::Sequence => "sequence",
-        ExecutionMode::Parallel => "parallel",
     }
 }
