@@ -18,67 +18,65 @@ impl TryInto<p::Node> for Pipeline {
     type Error = Error;
 
     fn try_into(self) -> Result {
-        convert_block(&self.pipeline, None, &self.units, Vec::new(), &vec![Status::Success])
+        convert_node(&self.pipeline, &None, &self.units, Vec::new(), &vec![Status::Success])
     }
 }
 
-fn convert_block<'a>(
-    block: &'a Node,
-    args: Args,
-    units: &'a Units,
-    circular: CircularCheck<'a>,
-    parent_run_on: &'a [Status],
+fn convert_node(
+    node: &Node,
+    args: &Args,
+    units: &Units,
+    circular: CircularCheck<'_>,
+    parent_run_on: &[Status],
 ) -> Result {
-    Ok(match block {
+    Ok(match node {
         Node::One { node, description, run_on } => {
             let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::List {
-                description: get_description(description),
-                list: vec![convert_block(&*node, args.clone(), units, circular.clone(), run_on)?],
+                description: convert_description(description),
+                list: vec![convert_node(&*node, args, units, circular, run_on)?],
                 mode: p::ExecutionMode::Sequence,
                 run_on: convert_run_on(run_on),
-                arguments: args.map(Into::into),
+                arguments: args.as_ref().map(Into::into),
             }
         }
         Node::List { list, description, mode, run_on } => {
             let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::List {
-                description: get_description(description),
+                description: convert_description(description),
                 list: list
                     .iter()
-                    .map(|item| convert_block(item, args.clone(), units, circular.clone(), run_on))
+                    .map(|item| convert_node(item, args, units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, Error>>()?,
                 mode: mode.into(),
                 run_on: convert_run_on(run_on),
-                arguments: args.map(Into::into),
+                arguments: args.as_ref().map(Into::into),
             }
         }
         Node::DefaultList(list) => p::Node::List {
             description: None,
             list: list
                 .iter()
-                .map(|item| {
-                    convert_block(item, args.clone(), units, circular.clone(), parent_run_on)
-                })
+                .map(|item| convert_node(item, args, units, circular.clone(), parent_run_on))
                 .collect::<StdResult<Vec<p::Node>, Error>>()?,
             mode: p::ExecutionMode::Sequence,
             run_on: convert_run_on(parent_run_on),
-            arguments: args.map(Into::into),
+            arguments: args.as_ref().map(Into::into),
         },
         Node::Command { command, location, description, run_on } => p::Node::Program {
             id: p::InstanceId::new_v4(),
-            description: get_description(description),
+            description: convert_description(description),
             commands: vec![command.into()],
             location: location.into(),
-            arguments: args.map(Into::into),
+            arguments: args.as_ref().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
         Node::Commands { commands, location, description, run_on } => p::Node::Program {
             id: p::InstanceId::new_v4(),
-            description: get_description(description),
+            description: convert_description(description),
             commands: commands.iter().map(Into::into).collect(),
             location: location.into(),
-            arguments: args.map(Into::into),
+            arguments: args.as_ref().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
         Node::Reference { id, arguments, run_on } => convert_reference(
@@ -103,13 +101,13 @@ fn convert_reference<'a>(
         Err(Error::Recursion(circular.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
         circular.push(id);
-        convert_block(unit, args.clone(), units, circular, run_on)
+        convert_node(unit, args, units, circular, run_on)
     } else {
         return Err(Error::NotFound(id.to_owned()));
     }
 }
 
-fn get_description(description: &str) -> Option<String> {
+fn convert_description(description: &str) -> Option<String> {
     if description.is_empty() {
         None
     } else {
@@ -142,11 +140,11 @@ impl Into<p::Status> for &Status {
 
 impl Into<p::Command> for &Command {
     fn into(self) -> p::Command {
-        p::Command { name: self.name.to_owned(), arguments: self.args.clone().map(Into::into) }
+        p::Command { name: self.name.to_owned(), arguments: self.args.as_ref().map(Into::into) }
     }
 }
 
-impl Into<p::Arguments> for Arguments {
+impl Into<p::Arguments> for &Arguments {
     fn into(self) -> p::Arguments {
         match self {
             Arguments::Map(map) => p::Arguments::Map(map.to_owned()),
