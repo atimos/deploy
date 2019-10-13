@@ -53,6 +53,7 @@ pub enum Node {
     },
     Reference {
         id: String,
+        #[serde(rename = "args")]
         arguments: Option<Arguments>,
         #[serde(default)]
         run_on: Vec<Status>,
