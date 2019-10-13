@@ -30,11 +30,11 @@ fn convert_block<'a>(
     parent_run_on: &'a [Status],
 ) -> Result {
     Ok(match block {
-        Node::One { run, description, run_on } => {
+        Node::One { node, description, run_on } => {
             let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
             p::Node::List {
                 description: get_description(description),
-                list: vec![convert_block(&*run, args.clone(), units, used.clone(), run_on)?],
+                list: vec![convert_block(&*node, args.clone(), units, used.clone(), run_on)?],
                 mode: p::ExecutionMode::Sequence,
                 run_on: convert_status_list(run_on),
                 arguments: args.map(Into::into),
@@ -85,8 +85,9 @@ fn convert_block<'a>(
                 run_on: convert_status_list(run_on),
             }
         }
-        Node::Reference { id, arguments } => {
-            convert_reference(id, arguments, units, used, parent_run_on)?
+        Node::Reference { id, arguments, run_on } => {
+            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
+            convert_reference(id, arguments, units, used, run_on)?
         }
     })
 }
