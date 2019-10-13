@@ -31,7 +31,7 @@ fn convert_block<'a>(
 ) -> Result {
     Ok(match block {
         Node::One { node, description, run_on } => {
-            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
+            let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::List {
                 description: get_description(description),
                 list: vec![convert_block(&*node, args.clone(), units, circular.clone(), run_on)?],
@@ -41,7 +41,7 @@ fn convert_block<'a>(
             }
         }
         Node::List { list, description, mode, run_on } => {
-            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
+            let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::List {
                 description: get_description(description),
                 list: list
@@ -62,35 +62,32 @@ fn convert_block<'a>(
                 })
                 .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
             mode: p::ExecutionMode::Sequence,
-            run_on: convert_run_on(&Vec::new()),
+            run_on: convert_run_on(parent_run_on),
             arguments: args.map(Into::into),
         },
-        Node::Command { command, location, description, run_on } => {
-            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
-            p::Node::Program {
-                id: p::InstanceId::new_v4(),
-                description: get_description(description),
-                commands: vec![command.into()],
-                location: location.into(),
-                arguments: args.map(Into::into),
-                run_on: convert_run_on(run_on),
-            }
-        }
-        Node::Commands { commands, location, description, run_on } => {
-            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
-            p::Node::Program {
-                id: p::InstanceId::new_v4(),
-                description: get_description(description),
-                commands: commands.iter().map(Into::into).collect(),
-                location: location.into(),
-                arguments: args.map(Into::into),
-                run_on: convert_run_on(run_on),
-            }
-        }
-        Node::Reference { id, arguments, run_on } => {
-            let run_on = if run_on.is_empty() { &run_on } else { parent_run_on };
-            convert_reference(id, arguments, units, circular, run_on)?
-        }
+        Node::Command { command, location, description, run_on } => p::Node::Program {
+            id: p::InstanceId::new_v4(),
+            description: get_description(description),
+            commands: vec![command.into()],
+            location: location.into(),
+            arguments: args.map(Into::into),
+            run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
+        },
+        Node::Commands { commands, location, description, run_on } => p::Node::Program {
+            id: p::InstanceId::new_v4(),
+            description: get_description(description),
+            commands: commands.iter().map(Into::into).collect(),
+            location: location.into(),
+            arguments: args.map(Into::into),
+            run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
+        },
+        Node::Reference { id, arguments, run_on } => convert_reference(
+            id,
+            arguments,
+            units,
+            circular,
+            if run_on.is_empty() { parent_run_on } else { &run_on },
+        )?,
     })
 }
 
