@@ -1,21 +1,21 @@
 use super::*;
-use crate::{error::ParseError, pipeline as p};
+use crate::{error::Error, pipeline as p};
 use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
 type Units = HashMap<String, Node>;
 type CircularCheck<'a> = Vec<&'a str>;
 type Args = Option<Arguments>;
-type Result = StdResult<p::Node, ParseError>;
+type Result = StdResult<p::Node, Error>;
 
-impl From<RonError> for ParseError {
+impl From<RonError> for Error {
     fn from(err: RonError) -> Self {
         Self::Syntax(err)
     }
 }
 
 impl TryInto<p::Node> for Pipeline {
-    type Error = ParseError;
+    type Error = Error;
 
     fn try_into(self) -> Result {
         convert_block(&self.pipeline, None, &self.units, Vec::new(), &vec![Status::Success])
@@ -47,7 +47,7 @@ fn convert_block<'a>(
                 list: list
                     .iter()
                     .map(|item| convert_block(item, args.clone(), units, circular.clone(), run_on))
-                    .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
+                    .collect::<StdResult<Vec<p::Node>, Error>>()?,
                 mode: mode.into(),
                 run_on: convert_run_on(run_on),
                 arguments: args.map(Into::into),
@@ -60,7 +60,7 @@ fn convert_block<'a>(
                 .map(|item| {
                     convert_block(item, args.clone(), units, circular.clone(), parent_run_on)
                 })
-                .collect::<StdResult<Vec<p::Node>, ParseError>>()?,
+                .collect::<StdResult<Vec<p::Node>, Error>>()?,
             mode: p::ExecutionMode::Sequence,
             run_on: convert_run_on(parent_run_on),
             arguments: args.map(Into::into),
@@ -100,12 +100,12 @@ fn convert_reference<'a>(
 ) -> Result {
     if circular.contains(&id.as_ref()) {
         circular.push(id);
-        Err(ParseError::Recursion(circular.into_iter().map(String::from).collect()))
+        Err(Error::Recursion(circular.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
         circular.push(id);
         convert_block(unit, args.clone(), units, circular, run_on)
     } else {
-        return Err(ParseError::NotFound(id.to_owned()));
+        return Err(Error::NotFound(id.to_owned()));
     }
 }
 
