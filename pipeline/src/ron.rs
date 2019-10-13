@@ -20,6 +20,8 @@ pub enum Node {
         location: Location,
         #[serde(default)]
         description: String,
+        #[serde(default)]
+        run_on: Vec<Status>,
     },
     Commands {
         #[serde(rename = "cmds")]
@@ -28,6 +30,8 @@ pub enum Node {
         location: Location,
         #[serde(default)]
         description: String,
+        #[serde(default)]
+        run_on: Vec<Status>,
     },
     DefaultList(Vec<Node>),
     List {
@@ -50,32 +54,19 @@ pub enum Node {
         id: String,
         arguments: Option<Arguments>,
     },
-    On {
-        condition: Box<Node>,
-        #[serde(default)]
-        description: String,
-        #[serde(default)]
-        on_success: Option<Box<Node>>,
-        #[serde(default)]
-        on_error: Option<Box<Node>>,
-        #[serde(default)]
-        on_abort: Option<Box<Node>>,
-    },
 }
 
 #[derive(Clone, Deserialize)]
 pub enum ExecutionMode {
-    #[serde(rename = "sequence-stop-on-error")]
-    SequenceStopOnError,
-    #[serde(rename = "sequence-run-all")]
-    SequenceRunAll,
+    #[serde(rename = "sequence")]
+    Sequence,
     #[serde(rename = "parallel")]
     Parallel,
 }
 
 impl Default for ExecutionMode {
     fn default() -> Self {
-        Self::SequenceStopOnError
+        Self::Sequence
     }
 }
 

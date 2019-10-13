@@ -9,20 +9,13 @@ pub enum Node {
         commands: Vec<Command>,
         location: Location,
         arguments: Option<Arguments>,
+        run_on: Vec<Status>,
     },
     List {
         description: Option<String>,
         list: Vec<Node>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
-        arguments: Option<Arguments>,
-    },
-    On {
-        description: Option<String>,
-        condition: Box<Node>,
-        success: Option<Box<Node>>,
-        error: Option<Box<Node>>,
-        abort: Option<Box<Node>>,
         arguments: Option<Arguments>,
     },
 }
@@ -44,8 +37,7 @@ pub enum Location {
 }
 
 pub enum ExecutionMode {
-    SequenceStopOnError,
-    SequenceRunAll,
+    Sequence,
     Parallel,
 }
 

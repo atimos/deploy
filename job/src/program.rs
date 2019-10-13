@@ -14,12 +14,21 @@ impl Programs {
         Programs(references.into_iter().collect())
     }
 
-    pub fn run(&self, id: &InstanceId, ccmds: Commands, args: &Arguments) -> Result<(), ()> {
+    pub fn run(&self, id: &InstanceId, args: &Arguments, cmds: Commands) -> Result<(), ()> {
         let program = &self.0[id];
+        match &program.0 {
+            Reference::Wasm(uri) => {
+                dbg!(uri);
+            }
+            Reference::Oci(repo, image) => {
+                dbg!(repo, image);
+            }
+        }
         Ok(())
     }
 }
 
+#[derive(Debug)]
 pub enum Reference {
     Wasm(String),
     Oci(String, String),
@@ -42,12 +51,6 @@ fn get_programs(node: &Node, references: &mut Vec<(InstanceId, Program)>) {
         }
         Node::List { list, .. } => {
             list.iter().for_each(|node| get_programs(node, references));
-        }
-        Node::On { condition, success, error, abort, .. } => {
-            get_programs(condition, references);
-            success.as_ref().map(|node| get_programs(&node, references));
-            error.as_ref().map(|node| get_programs(&node, references));
-            abort.as_ref().map(|node| get_programs(&node, references));
         }
     }
 }

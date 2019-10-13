@@ -15,34 +15,6 @@ pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
             }
             println!("{}])", indentation);
         }
-        pipeline::Node::On { description, condition, success, error, abort, .. } => {
-            let child_indentation = format!("    {}", child_indentation);
-            print!("{}On(", indentation);
-
-            if let Some(description) = description {
-                print!("\"{}\"", description);
-            }
-
-            println!("\n    {}condition:", indentation);
-            pretty(condition, child_indentation.clone());
-
-            if let Some(cmd) = success {
-                println!("    {}on_success:", indentation);
-                pretty(cmd, child_indentation.clone());
-            }
-
-            if let Some(cmd) = error {
-                println!("    {}on_error:", indentation);
-                pretty(cmd, child_indentation.clone());
-            }
-
-            if let Some(cmd) = abort {
-                println!("    {}on_abort:", indentation);
-                pretty(cmd, child_indentation);
-            }
-
-            println!("{})", indentation);
-        }
         pipeline::Node::Program { description, location, commands, id, .. } => {
             print!("{}", indentation);
             match location {
@@ -77,8 +49,7 @@ pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
 
 fn print_mode(mode: &ExecutionMode) -> &'static str {
     match mode {
-        ExecutionMode::SequenceStopOnError => "stop-on-error",
-        ExecutionMode::SequenceRunAll => "run-all",
+        ExecutionMode::Sequence => "sequence",
         ExecutionMode::Parallel => "parallel",
     }
 }
