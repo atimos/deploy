@@ -1,5 +1,6 @@
 mod environment;
 mod program;
+mod error;
 
 use environment::Environment;
 use pipeline::Node;
@@ -8,14 +9,16 @@ use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct Jobs(Vec<Job>);
+type Result<T> = std::result::Result<T, error::Error>;
 
 impl Jobs {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 
-    pub fn append(&mut self, pipeline: Node, path: PathBuf) {
-        self.0.push(Job::new(pipeline, path));
+    pub fn load(&mut self, pipeline: Node, path: PathBuf) -> Result<()> {
+        self.0.push(Job::new(pipeline, path)?);
+        Ok(())
     }
 }
 
@@ -38,16 +41,20 @@ pub struct Job {
 }
 
 impl Job {
-    fn new(pipeline: Node, path: PathBuf) -> Self {
-        Self { environment: Environment::new(path), programs: Programs::new(&pipeline), pipeline }
+    fn new(pipeline: Node, path: PathBuf) -> Result<Self> {
+        Ok(Self {
+            environment: Environment::new(path),
+            programs: Programs::new(&pipeline)?,
+            pipeline,
+        })
     }
 
-    pub fn run(self) -> Result<(), ()> {
+    pub fn run(self) -> Result<()> {
         run_node(&self.pipeline, &self.programs)
     }
 }
 
-fn run_node(node: &Node, programs: &Programs) -> Result<(), ()> {
+fn run_node(node: &Node, programs: &Programs) -> Result<()> {
     match node {
         Node::Program { id, commands, arguments, .. } => programs.run(id, arguments, commands),
         Node::List { list, .. } => list.iter().map(|node| run_node(node, programs)).collect(),

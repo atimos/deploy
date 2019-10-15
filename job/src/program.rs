@@ -1,14 +1,15 @@
+use crate::Result;
 use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
 
 pub struct Programs(HashMap<InstanceId, Program>);
 
 impl Programs {
-    pub fn new(pipeline: &Node) -> Self {
+    pub fn new(pipeline: &Node) -> Result<Self> {
         let mut references = Vec::new();
         get_references(pipeline, &mut references);
 
-        Programs(load_programs(references).collect())
+        Ok(Programs(load_programs(references).collect::<Result<HashMap<InstanceId, Program>>>()?))
     }
 
     pub fn run(
@@ -16,7 +17,7 @@ impl Programs {
         id: &InstanceId,
         args: &Option<pipeline::Arguments>,
         cmds: &[Command],
-    ) -> Result<(), ()> {
+    ) -> Result<()> {
         self.0[id].run(args, cmds)
     }
 }
@@ -27,7 +28,7 @@ pub struct Program {
 }
 
 impl Program {
-    fn run(&self, args: &Option<pipeline::Arguments>, cmds: &[Command]) -> Result<(), ()> {
+    fn run(&self, args: &Option<pipeline::Arguments>, cmds: &[Command]) -> Result<()> {
         let program = self.reference.load(args)?;
         cmds.iter().map(|cmd| program.run(cmd)).collect()
     }
@@ -40,7 +41,7 @@ pub enum Reference {
 }
 
 impl Reference {
-    fn load(&self, args: &Option<pipeline::Arguments>) -> Result<Binary, ()> {
+    fn load(&self, args: &Option<pipeline::Arguments>) -> Result<Binary> {
         dbg!(self, args);
         match self {
             Reference::Wasm { uri } => Ok(Binary::Wasm(Vec::new())),
@@ -56,7 +57,7 @@ pub enum Binary {
 }
 
 impl Binary {
-    fn run(&self, cmd: &Command) -> Result<(), ()> {
+    fn run(&self, cmd: &Command) -> Result<()> {
         dbg!(self, cmd);
         Ok(())
     }
@@ -78,6 +79,8 @@ fn get_references(node: &Node, references: &mut Vec<(InstanceId, Reference)>) {
     }
 }
 
-fn load_programs(references: Vec<(InstanceId, Reference)>) -> impl Iterator<Item=(InstanceId, Program)> {
-    references.into_iter().map(|(id, reference)| (id, Program { reference, binary: None }))
+fn load_programs(
+    references: Vec<(InstanceId, Reference)>,
+) -> impl Iterator<Item = Result<(InstanceId, Program)>> {
+    references.into_iter().map(|(id, reference)| Ok((id, Program { reference, binary: None })))
 }
