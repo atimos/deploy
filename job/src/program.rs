@@ -1,4 +1,5 @@
-use crate::Result;
+use crate::{error::Error, Result};
+use handlebars::Handlebars;
 use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
 
@@ -18,10 +19,11 @@ impl Programs {
         args: &Option<pipeline::Arguments>,
         cmds: &[Command],
     ) -> Result<()> {
-        self.0[id].run(args, cmds)
+        dbg!(&self.0[id]).run(args, cmds)
     }
 }
 
+#[derive(Debug)]
 pub struct Program {
     reference: Reference,
     binary: Option<Binary>,
@@ -29,8 +31,12 @@ pub struct Program {
 
 impl Program {
     fn run(&self, args: &Option<pipeline::Arguments>, cmds: &[Command]) -> Result<()> {
-        let program = self.reference.load(args)?;
-        cmds.iter().map(|cmd| program.run(cmd)).collect()
+        if let Some(bin) = &self.binary {
+            cmds.iter().map(|cmd| bin.run(cmd)).collect()
+        } else {
+            let bin = self.reference.load(args)?;
+            cmds.iter().map(|cmd| bin.run(cmd)).collect()
+        }
     }
 }
 
@@ -42,10 +48,19 @@ pub enum Reference {
 
 impl Reference {
     fn load(&self, args: &Option<pipeline::Arguments>) -> Result<Binary> {
-        dbg!(self, args);
+        let mut hb = Handlebars::new();
+        hb.set_strict_mode(true);
+
         match self {
-            Reference::Wasm { uri } => Ok(Binary::Wasm(Vec::new())),
-            Reference::Oci { repository, image } => Ok(Binary::Oci(String::new())),
+            Reference::Wasm { uri } => {
+                let uri = hb.render_template(uri, args)?;
+                Ok(Binary::Wasm(Vec::new()))
+            }
+            Reference::Oci { repository, image } => {
+                let repository = hb.render_template(repository, args)?;
+                let image = hb.render_template(image, args)?;
+                Ok(Binary::Oci(String::new()))
+            }
         }
     }
 }
@@ -58,7 +73,6 @@ pub enum Binary {
 
 impl Binary {
     fn run(&self, cmd: &Command) -> Result<()> {
-        dbg!(self, cmd);
         Ok(())
     }
 }
@@ -82,5 +96,9 @@ fn get_references(node: &Node, references: &mut Vec<(InstanceId, Reference)>) {
 fn load_programs(
     references: Vec<(InstanceId, Reference)>,
 ) -> impl Iterator<Item = Result<(InstanceId, Program)>> {
-    references.into_iter().map(|(id, reference)| Ok((id, Program { reference, binary: None })))
+    references.into_iter().map(|(id, reference)| match reference.load(&None) {
+        Ok(bin) => Ok((id, Program { reference, binary: Some(bin) })),
+        Err(Error::DynamicValue(_)) => Ok((id, Program { reference, binary: None })),
+        Err(err) => Err(err),
+    })
 }
