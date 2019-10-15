@@ -2,7 +2,7 @@ use crate::program::Reference;
 
 #[derive(Debug)]
 pub enum Error {
-    Load(Reference)
+    Load(Reference),
 }
 
 impl std::error::Error for Error {

@@ -1,6 +1,6 @@
 mod environment;
-mod program;
 mod error;
+mod program;
 
 use environment::Environment;
 use pipeline::Node;
