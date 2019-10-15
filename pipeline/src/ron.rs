@@ -5,7 +5,8 @@ use std::collections::HashMap;
 
 #[derive(Clone, Deserialize)]
 pub struct Pipeline {
-    pub pipeline: Node,
+    #[serde(rename = "pipeline")]
+    pub start: Node,
     #[serde(default)]
     pub units: HashMap<String, Node>,
 }
@@ -51,7 +52,7 @@ pub enum Node {
         #[serde(default)]
         run_on: Vec<Status>,
     },
-    Reference {
+    UnitReference {
         id: String,
         #[serde(rename = "args")]
         arguments: Option<Arguments>,

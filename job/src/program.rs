@@ -1,24 +1,35 @@
 use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
 
-pub type Arguments = Option<pipeline::Arguments>;
-pub type Commands<'a> = &'a [Command];
-pub type Program = (Reference, Option<Binary>);
 pub struct Programs(HashMap<InstanceId, Program>);
 
 impl Programs {
     pub fn new(pipeline: &Node) -> Self {
         let mut references = Vec::new();
-        get_programs(pipeline, &mut references);
+        get_references(pipeline, &mut references);
 
-        Programs(references.into_iter().collect())
+        Programs(load_programs(references).collect())
     }
 
-    pub fn run(&self, id: &InstanceId, args: &Arguments, cmds: Commands) -> Result<(), ()> {
-        let program = &self.0[id];
-        load(&program.0, args).map(drop)?;
-        dbg!(cmds);
-        Ok(())
+    pub fn run(
+        &self,
+        id: &InstanceId,
+        args: &Option<pipeline::Arguments>,
+        cmds: &[Command],
+    ) -> Result<(), ()> {
+        self.0[id].run(args, cmds)
+    }
+}
+
+pub struct Program {
+    reference: Reference,
+    binary: Option<Binary>,
+}
+
+impl Program {
+    fn run(&self, args: &Option<pipeline::Arguments>, cmds: &[Command]) -> Result<(), ()> {
+        let program = self.reference.load(args)?;
+        cmds.iter().map(|cmd| program.run(cmd)).collect()
     }
 }
 
@@ -28,38 +39,45 @@ pub enum Reference {
     Oci { repository: String, image: String },
 }
 
+impl Reference {
+    fn load(&self, args: &Option<pipeline::Arguments>) -> Result<Binary, ()> {
+        dbg!(self, args);
+        match self {
+            Reference::Wasm { uri } => Ok(Binary::Wasm(Vec::new())),
+            Reference::Oci { repository, image } => Ok(Binary::Oci(String::new())),
+        }
+    }
+}
+
+#[derive(Debug)]
 pub enum Binary {
     Wasm(Vec<u8>),
     Oci(String),
 }
 
-fn get_programs(node: &Node, references: &mut Vec<(InstanceId, Program)>) {
+impl Binary {
+    fn run(&self, cmd: &Command) -> Result<(), ()> {
+        dbg!(self, cmd);
+        Ok(())
+    }
+}
+
+fn get_references(node: &Node, references: &mut Vec<(InstanceId, Reference)>) {
     match node {
         Node::Program { location, id, .. } => {
-            references.push((
-                id.to_owned(),
-                (
-                    match location {
-                        Location::Wasm { uri } => Reference::Wasm { uri: uri.to_owned() },
-                        Location::Oci { repository, image } => Reference::Oci {
-                            repository: repository.to_owned(),
-                            image: image.to_owned(),
-                        },
-                    },
-                    None,
-                ),
-            ));
+            references.push((id.to_owned(), match location {
+                Location::Wasm { uri } => Reference::Wasm { uri: uri.to_owned() },
+                Location::Oci { repository, image } => {
+                    Reference::Oci { repository: repository.to_owned(), image: image.to_owned() }
+                }
+            }));
         }
         Node::List { list, .. } => {
-            list.iter().for_each(|node| get_programs(node, references));
+            list.iter().for_each(|node| get_references(node, references));
         }
     }
 }
 
-fn load(reference: &Reference, args: &Arguments) -> Result<Binary, ()> {
-    dbg!(reference, args);
-    match reference {
-        Reference::Wasm { uri } => Ok(Binary::Wasm(Vec::new())),
-        Reference::Oci { repository, image } => Ok(Binary::Oci(String::new())),
-    }
+fn load_programs(references: Vec<(InstanceId, Reference)>) -> impl Iterator<Item=(InstanceId, Program)> {
+    references.into_iter().map(|(id, reference)| (id, Program { reference, binary: None }))
 }

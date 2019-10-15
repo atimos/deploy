@@ -4,23 +4,23 @@ mod program;
 use environment::Environment;
 use pipeline::Node;
 use program::Programs;
-use std::path::Path;
+use std::path::PathBuf;
 
 #[derive(Default)]
-pub struct Jobs<'a>(Vec<Job<'a>>);
+pub struct Jobs(Vec<Job>);
 
-impl<'a> Jobs<'a> {
+impl Jobs {
     pub fn new() -> Self {
         Self(Vec::new())
     }
 
-    pub fn append(&mut self, pipeline: Node, path: &'a Path) {
+    pub fn append(&mut self, pipeline: Node, path: PathBuf) {
         self.0.push(Job::new(pipeline, path));
     }
 }
 
-impl<'a> Iterator for Jobs<'a> {
-    type Item = Job<'a>;
+impl Iterator for Jobs {
+    type Item = Job;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.0.is_empty() {
@@ -31,14 +31,14 @@ impl<'a> Iterator for Jobs<'a> {
     }
 }
 
-pub struct Job<'a> {
+pub struct Job {
     pipeline: Node,
-    environment: Environment<'a>,
+    environment: Environment,
     programs: Programs,
 }
 
-impl<'a> Job<'a> {
-    fn new(pipeline: Node, path: &'a Path) -> Self {
+impl Job {
+    fn new(pipeline: Node, path: PathBuf) -> Self {
         Self { environment: Environment::new(path), programs: Programs::new(&pipeline), pipeline }
     }
 

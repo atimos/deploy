@@ -57,9 +57,8 @@ fn check(path: PathBuf) -> Result {
 }
 
 fn run(path: PathBuf) -> Result {
-    let root = std::env::current_dir().unwrap();
     let mut jobs = Jobs::new();
-    jobs.append(from_ron(&read(path)?)?, &root);
+    jobs.append(from_ron(&read(path)?)?, std::env::current_dir().unwrap());
 
     let _ = jobs.next().unwrap().run();
     Ok(())
