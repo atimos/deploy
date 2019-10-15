@@ -60,6 +60,5 @@ fn run(path: PathBuf) -> Result {
     let mut jobs = Jobs::new();
     jobs.load(from_ron(&read(path)?)?, std::env::current_dir().unwrap())?;
 
-    let _ = jobs.next().unwrap().run();
-    Ok(())
+    Ok(jobs.next().unwrap().run()?)
 }
