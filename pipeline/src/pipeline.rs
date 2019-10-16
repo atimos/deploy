@@ -1,4 +1,3 @@
-use serde::Serialize;
 use std::collections::HashMap;
 
 pub type InstanceId = uuid::Uuid;
@@ -28,7 +27,7 @@ pub struct Command {
     pub arguments: Option<Arguments>,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug)]
 pub enum Arguments {
     Map(HashMap<String, String>),
     List(Vec<String>),

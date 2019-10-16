@@ -1,4 +1,4 @@
-use crate::{error::Error, Result};
+use crate::{environment::Arguments, error::Error, Result};
 use handlebars::Handlebars;
 use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
@@ -13,12 +13,7 @@ impl Programs {
         Ok(Programs(load_programs(references).collect::<Result<HashMap<InstanceId, Program>>>()?))
     }
 
-    pub fn run(
-        &self,
-        id: &InstanceId,
-        args: &Option<pipeline::Arguments>,
-        cmds: &[Command],
-    ) -> Result<()> {
+    pub fn run(&self, id: &InstanceId, args: &Option<Arguments>, cmds: &[Command]) -> Result<()> {
         dbg!(&self.0[id]).run(args, cmds)
     }
 }
@@ -30,7 +25,7 @@ pub struct Program {
 }
 
 impl Program {
-    fn run(&self, args: &Option<pipeline::Arguments>, cmds: &[Command]) -> Result<()> {
+    fn run(&self, args: &Option<Arguments>, cmds: &[Command]) -> Result<()> {
         if let Some(bin) = &self.binary {
             cmds.iter().map(|cmd| bin.run(cmd)).collect()
         } else {
@@ -47,7 +42,7 @@ pub enum Reference {
 }
 
 impl Reference {
-    fn load(&self, args: &Option<pipeline::Arguments>) -> Result<Binary> {
+    fn load(&self, args: &Option<Arguments>) -> Result<Binary> {
         let mut hb = Handlebars::new();
         hb.set_strict_mode(true);
 

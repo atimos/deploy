@@ -8,6 +8,7 @@ use structopt::StructOpt;
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 
 #[derive(StructOpt)]
+#[structopt(name = "deploy cli")]
 enum Cli {
     #[structopt(name = "print")]
     Print {
