@@ -50,15 +50,17 @@ impl Job {
     }
 
     pub fn run(self) -> Result<()> {
-        run_node(self.pipeline, &self.programs)
+        run_node(self.pipeline, self.environment, &self.programs)
     }
 }
 
-fn run_node(node: Node, programs: &Programs) -> Result<()> {
+fn run_node(node: Node, mut env: Environment, programs: &Programs) -> Result<()> {
     match node {
         Node::Program { id, commands, arguments, .. } => {
-            programs.run(&id, &arguments.map(Into::into), &commands)
+            programs.run(&id, &commands, &arguments.map(Into::into), &mut env)
         }
-        Node::List { list, .. } => list.into_iter().map(|node| run_node(node, programs)).collect(),
+        Node::List { list, .. } => {
+            list.into_iter().map(|node| run_node(node, env.clone(), programs)).collect()
+        }
     }
 }

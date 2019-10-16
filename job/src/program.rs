@@ -1,4 +1,8 @@
-use crate::{environment::Arguments, error::Error, Result};
+use crate::{
+    environment::{Arguments, Environment},
+    error::Error,
+    Result,
+};
 use handlebars::Handlebars;
 use pipeline::{Command, InstanceId, Location, Node};
 use std::collections::HashMap;
@@ -13,8 +17,14 @@ impl Programs {
         Ok(Programs(load_programs(references).collect::<Result<HashMap<InstanceId, Program>>>()?))
     }
 
-    pub fn run(&self, id: &InstanceId, args: &Option<Arguments>, cmds: &[Command]) -> Result<()> {
-        dbg!(&self.0[id]).run(args, cmds)
+    pub fn run(
+        &self,
+        id: &InstanceId,
+        cmds: &[Command],
+        args: &Option<Arguments>,
+        env: &mut Environment,
+    ) -> Result<()> {
+        dbg!(&self.0[id]).run(cmds, env, args)
     }
 }
 
@@ -25,12 +35,12 @@ pub struct Program {
 }
 
 impl Program {
-    fn run(&self, args: &Option<Arguments>, cmds: &[Command]) -> Result<()> {
+    fn run(&self, cmds: &[Command], env: &mut Environment, args: &Option<Arguments>) -> Result<()> {
         if let Some(bin) = &self.binary {
-            cmds.iter().map(|cmd| bin.run(cmd)).collect()
+            cmds.iter().map(|cmd| bin.run(cmd, env)).collect()
         } else {
             let bin = self.reference.load(args)?;
-            cmds.iter().map(|cmd| bin.run(cmd)).collect()
+            cmds.iter().map(|cmd| bin.run(cmd, env)).collect()
         }
     }
 }
@@ -67,7 +77,7 @@ pub enum Binary {
 }
 
 impl Binary {
-    fn run(&self, cmd: &Command) -> Result<()> {
+    fn run(&self, cmd: &Command, env: &mut Environment) -> Result<()> {
         Ok(())
     }
 }
