@@ -18,7 +18,7 @@ impl TryInto<p::Node> for Pipeline {
     type Error = Error;
 
     fn try_into(self) -> Result {
-        convert_node(&self.start, &None, &self.units, Vec::new(), &vec![Status::Success])
+        convert_node(&self.start, &None, &self.units, Vec::new(), &[Status::Success])
     }
 }
 
@@ -30,16 +30,6 @@ fn convert_node(
     parent_run_on: &[Status],
 ) -> Result {
     Ok(match node {
-        Node::One { node, description, run_on } => {
-            let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
-            p::Node::List {
-                description: convert_description(description),
-                list: vec![convert_node(&*node, unit_args, units, circular, run_on)?],
-                mode: p::ExecutionMode::Sequence,
-                run_on: convert_run_on(run_on),
-                arguments: unit_args.as_ref().map(Into::into),
-            }
-        }
         Node::List { list, description, mode, run_on } => {
             let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::List {
@@ -53,28 +43,10 @@ fn convert_node(
                 arguments: unit_args.as_ref().map(Into::into),
             }
         }
-        Node::DefaultList(list) => p::Node::List {
-            description: None,
-            list: list
-                .iter()
-                .map(|item| convert_node(item, unit_args, units, circular.clone(), parent_run_on))
-                .collect::<StdResult<Vec<p::Node>, Error>>()?,
-            mode: p::ExecutionMode::Sequence,
-            run_on: convert_run_on(parent_run_on),
-            arguments: unit_args.as_ref().map(Into::into),
-        },
-        Node::Command { command, location, description, run_on } => p::Node::Program {
+        Node::Program { commands, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
-            commands: vec![command.into()],
-            location: location.into(),
-            arguments: unit_args.as_ref().map(Into::into),
-            run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
-        },
-        Node::Commands { commands, location, description, run_on } => p::Node::Program {
-            id: p::InstanceId::new_v4(),
-            description: convert_description(description),
-            commands: commands.iter().map(Into::into).collect(),
+            commands: convert_commands(commands),
             location: location.into(),
             arguments: unit_args.as_ref().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
@@ -96,14 +68,14 @@ fn convert_reference<'a>(
     mut circular: CircularCheck<'a>,
     run_on: &[Status],
 ) -> Result {
-    if circular.contains(&id.as_ref()) {
+    if circular.contains(&id) {
         circular.push(id);
         Err(Error::Recursion(circular.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
         circular.push(id);
         convert_node(unit, args, units, circular, run_on)
     } else {
-        return Err(Error::NotFound(id.to_owned()));
+        Err(Error::NotFound(id.to_owned()))
     }
 }
 
@@ -117,6 +89,13 @@ fn convert_description(description: &str) -> Option<String> {
 
 fn convert_run_on(list: &[Status]) -> Vec<p::Status> {
     list.iter().map(Into::into).collect()
+}
+
+fn convert_commands(commands: &Commands) -> Vec<p::Command> {
+    match commands {
+        Commands::One(command) => vec![command.into()],
+        Commands::Multiple(commands) => commands.iter().map(Into::into).collect()
+    }
 }
 
 impl Into<p::ExecutionMode> for &ExecutionMode {

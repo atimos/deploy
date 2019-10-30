@@ -14,19 +14,9 @@ pub struct Pipeline {
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Node {
-    Command {
-        #[serde(flatten)]
-        command: Command,
-        #[serde(flatten)]
-        location: Location,
-        #[serde(default)]
-        description: String,
-        #[serde(default)]
-        run_on: Vec<Status>,
-    },
-    Commands {
-        #[serde(rename = "cmds")]
-        commands: Vec<Command>,
+    Program {
+        #[serde(rename = "cmd")]
+        commands: Commands,
         #[serde(flatten)]
         location: Location,
         #[serde(default)]
@@ -34,21 +24,12 @@ pub enum Node {
         #[serde(default)]
         run_on: Vec<Status>,
     },
-    DefaultList(Vec<Node>),
     List {
         list: Vec<Node>,
         #[serde(default)]
         description: String,
         #[serde(default)]
         mode: ExecutionMode,
-        #[serde(default)]
-        run_on: Vec<Status>,
-    },
-    One {
-        #[serde(rename = "run")]
-        node: Box<Node>,
-        #[serde(default)]
-        description: String,
         #[serde(default)]
         run_on: Vec<Status>,
     },
@@ -95,8 +76,14 @@ pub enum Location {
 }
 
 #[derive(Clone, Deserialize)]
+#[serde(untagged)]
+pub enum Commands {
+    One(Command),
+    Multiple(Vec<Command>),
+}
+
+#[derive(Clone, Deserialize)]
 pub struct Command {
-    #[serde(rename = "cmd")]
     pub name: String,
     #[serde(default)]
     pub args: Option<Arguments>,

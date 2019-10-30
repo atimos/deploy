@@ -4,7 +4,7 @@ pub type InstanceId = uuid::Uuid;
 
 #[derive(Debug)]
 pub enum Node {
-    Program {
+    Commands {
         id: InstanceId,
         description: Option<String>,
         commands: Vec<Command>,
