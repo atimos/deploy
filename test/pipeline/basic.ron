@@ -1,5 +1,5 @@
 (
-    pipeline: (list: [
+    pipeline: [
         (
             description: "Setup environment",
             type: "wasm",
@@ -34,18 +34,18 @@
 
         (description: "Run system and integration tests", list: [
             (id: "composer-install", args: {"env": "dev"}),
-            (list: [
+            [
                 (id: "composer-install", args: {"env": "dev"}),
                 (cmd: (name: "composer", args: "test:system"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
                 (cmd: (name: "composer", args: "test:e2e"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
-            ]),
+            ],
         ]),
 
         (description: "Collect test results", run_on: ["error", "success", "abort"], mode: "parallel", list: [
             (cmd: (name: "publish", args: {"input": "test/report/php/report.xml", "type": "junit"}), type: "wasm", uri: "core://report"),
             (cmd: (name: "publish", args: {"input": "test/report/php/clover.xml", "type": "clover"}), type: "wasm", uri: "core://report"),
         ]),
-    ]),
+    ],
 
     units: {
         "build-image": (type: "oci", repo: "{{env.dockerhub}}", image: "docker", cmd: [

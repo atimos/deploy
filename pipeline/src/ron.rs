@@ -24,6 +24,7 @@ pub enum Node {
         #[serde(default)]
         run_on: Vec<Status>,
     },
+    DefaultList(Vec<Node>),
     List {
         list: Vec<Node>,
         #[serde(default)]
