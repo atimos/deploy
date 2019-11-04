@@ -43,18 +43,16 @@ fn convert_node(
                 arguments: unit_args.as_ref().map(Into::into),
             }
         }
-        Node::DefaultList(list) => {
-            p::Node::List {
-                description: convert_description(""),
-                list: list
-                    .iter()
-                    .map(|item| convert_node(item, unit_args, units, circular.clone(), parent_run_on))
-                    .collect::<StdResult<Vec<p::Node>, Error>>()?,
-                mode: p::ExecutionMode::Sequence.into(),
-                run_on: convert_run_on(parent_run_on),
-                arguments: unit_args.as_ref().map(Into::into),
-            }
-        }
+        Node::DefaultList(list) => p::Node::List {
+            description: convert_description(""),
+            list: list
+                .iter()
+                .map(|item| convert_node(item, unit_args, units, circular.clone(), parent_run_on))
+                .collect::<StdResult<Vec<p::Node>, Error>>()?,
+            mode: p::ExecutionMode::Sequence.into(),
+            run_on: convert_run_on(parent_run_on),
+            arguments: unit_args.as_ref().map(Into::into),
+        },
         Node::Program { commands, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
@@ -106,7 +104,7 @@ fn convert_run_on(list: &[Status]) -> Vec<p::Status> {
 fn convert_commands(commands: &Commands) -> Vec<p::Command> {
     match commands {
         Commands::One(command) => vec![command.into()],
-        Commands::Multiple(commands) => commands.iter().map(Into::into).collect()
+        Commands::Multiple(commands) => commands.iter().map(Into::into).collect(),
     }
 }
 
