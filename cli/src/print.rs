@@ -6,7 +6,7 @@ pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
     let child_indentation = format!("    {}", indentation);
 
     match pipeline {
-        pipeline::Node::List { description, list, mode, .. } => {
+        pipeline::Node::Nodes { description, list, mode, .. } => {
             print!("{}{:?}(", indentation, mode);
             if let Some(description) = description {
                 print!("\"{}\" ", description);
@@ -17,7 +17,7 @@ pub fn pretty(pipeline: &pipeline::Node, indentation: String) {
             }
             println!("{}])", indentation);
         }
-        pipeline::Node::Program { description, location, commands, id, .. } => {
+        pipeline::Node::Commands { description, location, commands, id, .. } => {
             print!("{}", indentation);
             match location {
                 pipeline::Location::Oci { repository, image } => {

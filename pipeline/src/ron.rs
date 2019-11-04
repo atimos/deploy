@@ -14,7 +14,7 @@ pub struct Pipeline {
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Node {
-    Program {
+    Commands {
         #[serde(rename = "cmd")]
         commands: Commands,
         #[serde(flatten)]
@@ -25,7 +25,7 @@ pub enum Node {
         run_on: Vec<Status>,
     },
     DefaultList(Vec<Node>),
-    List {
+    Nodes {
         list: Vec<Node>,
         #[serde(default)]
         description: String,
@@ -34,7 +34,7 @@ pub enum Node {
         #[serde(default)]
         run_on: Vec<Status>,
     },
-    UnitReference {
+    Reference {
         id: String,
         #[serde(rename = "args")]
         arguments: Option<Arguments>,

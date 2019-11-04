@@ -30,9 +30,9 @@ fn convert_node(
     parent_run_on: &[Status],
 ) -> Result {
     Ok(match node {
-        Node::List { list, description, mode, run_on } => {
+        Node::Nodes { list, description, mode, run_on } => {
             let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
-            p::Node::List {
+            p::Node::Nodes {
                 description: convert_description(description),
                 list: list
                     .iter()
@@ -43,7 +43,7 @@ fn convert_node(
                 arguments: unit_args.as_ref().map(Into::into),
             }
         }
-        Node::DefaultList(list) => p::Node::List {
+        Node::DefaultList(list) => p::Node::Nodes {
             description: convert_description(""),
             list: list
                 .iter()
@@ -53,7 +53,7 @@ fn convert_node(
             run_on: convert_run_on(parent_run_on),
             arguments: unit_args.as_ref().map(Into::into),
         },
-        Node::Program { commands, location, description, run_on } => p::Node::Commands {
+        Node::Commands { commands, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
             commands: convert_commands(commands),
@@ -61,7 +61,7 @@ fn convert_node(
             arguments: unit_args.as_ref().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
-        Node::UnitReference { id, arguments, run_on } => convert_reference(
+        Node::Reference { id, arguments, run_on } => convert_reference(
             id,
             arguments,
             units,

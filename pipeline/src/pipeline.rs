@@ -9,10 +9,10 @@ pub enum Node {
         description: Option<String>,
         commands: Vec<Command>,
         location: Location,
-        arguments: Option<Arguments>,
         run_on: Vec<Status>,
+        arguments: Option<Arguments>,
     },
-    List {
+    Nodes {
         description: Option<String>,
         list: Vec<Node>,
         mode: ExecutionMode,
