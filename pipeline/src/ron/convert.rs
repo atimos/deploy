@@ -18,7 +18,7 @@ impl TryInto<p::Node> for Pipeline {
     type Error = Error;
 
     fn try_into(self) -> Result {
-        convert_node(&self.start, &None, &self.units, Vec::new(), &[Status::Success])
+        convert_node(&self.pipeline, &None, &self.units, Vec::new(), &[Status::success])
     }
 }
 
@@ -34,7 +34,7 @@ fn convert_node(
             let run_on = if run_on.is_empty() { parent_run_on } else { &run_on };
             p::Node::Nodes {
                 description: convert_description(description),
-                list: list
+                nodes: list
                     .iter()
                     .map(|item| convert_node(item, unit_args, units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, Error>>()?,
@@ -45,7 +45,7 @@ fn convert_node(
         }
         Node::DefaultList(list) => p::Node::Nodes {
             description: convert_description(""),
-            list: list
+            nodes: list
                 .iter()
                 .map(|item| convert_node(item, unit_args, units, circular.clone(), parent_run_on))
                 .collect::<StdResult<Vec<p::Node>, Error>>()?,
@@ -53,17 +53,17 @@ fn convert_node(
             run_on: convert_run_on(parent_run_on),
             arguments: unit_args.as_ref().map(Into::into),
         },
-        Node::Commands { commands, location, description, run_on } => p::Node::Commands {
+        Node::Commands { cmd, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
-            commands: convert_commands(commands),
+            commands: convert_commands(cmd),
             location: location.into(),
             arguments: unit_args.as_ref().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
-        Node::Reference { id, arguments, run_on } => convert_reference(
+        Node::Reference { id, args, run_on } => convert_reference(
             id,
-            arguments,
+            args,
             units,
             circular,
             if run_on.is_empty() { parent_run_on } else { &run_on },
@@ -111,8 +111,8 @@ fn convert_commands(commands: &Commands) -> Vec<p::Command> {
 impl Into<p::ExecutionMode> for &ExecutionMode {
     fn into(self) -> p::ExecutionMode {
         match self {
-            ExecutionMode::Sequence => p::ExecutionMode::Sequence,
-            ExecutionMode::Parallel => p::ExecutionMode::Parallel,
+            ExecutionMode::sequence => p::ExecutionMode::Sequence,
+            ExecutionMode::parallel => p::ExecutionMode::Parallel,
         }
     }
 }
@@ -120,9 +120,9 @@ impl Into<p::ExecutionMode> for &ExecutionMode {
 impl Into<p::Status> for &Status {
     fn into(self) -> p::Status {
         match self {
-            Status::Success => p::Status::Success,
-            Status::Error => p::Status::Error,
-            Status::Abort => p::Status::Abort,
+            Status::success => p::Status::Success,
+            Status::error => p::Status::Error,
+            Status::abort => p::Status::Abort,
         }
     }
 }
@@ -146,8 +146,8 @@ impl Into<p::Arguments> for &Arguments {
 impl Into<p::Location> for &Location {
     fn into(self) -> p::Location {
         match self {
-            Location::Wasm { uri } => p::Location::Wasm { uri: uri.to_owned() },
-            Location::Oci { repo, image } => {
+            Location::wasm { uri } => p::Location::Wasm { uri: uri.to_owned() },
+            Location::oci { repo, image } => {
                 p::Location::Oci { repository: repo.to_owned(), image: image.to_owned() }
             }
         }

@@ -14,7 +14,7 @@ pub enum Node {
     },
     Nodes {
         description: Option<String>,
-        list: Vec<Node>,
+        nodes: Vec<Node>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
         arguments: Option<Arguments>,

@@ -5,8 +5,7 @@ use std::collections::HashMap;
 
 #[derive(Clone, Deserialize)]
 pub struct Pipeline {
-    #[serde(rename = "pipeline")]
-    pub start: Node,
+    pub pipeline: Node,
     #[serde(default)]
     pub units: HashMap<String, Node>,
 }
@@ -15,8 +14,7 @@ pub struct Pipeline {
 #[serde(untagged)]
 pub enum Node {
     Commands {
-        #[serde(rename = "cmd")]
-        commands: Commands,
+        cmd: Commands,
         #[serde(flatten)]
         location: Location,
         #[serde(default)]
@@ -36,44 +34,39 @@ pub enum Node {
     },
     Reference {
         id: String,
-        #[serde(rename = "args")]
-        arguments: Option<Arguments>,
+        args: Option<Arguments>,
         #[serde(default)]
         run_on: Vec<Status>,
     },
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Clone, Deserialize)]
 pub enum ExecutionMode {
-    #[serde(rename = "sequence")]
-    Sequence,
-    #[serde(rename = "parallel")]
-    Parallel,
+    sequence,
+    parallel,
 }
 
 impl Default for ExecutionMode {
     fn default() -> Self {
-        Self::Sequence
+        Self::sequence
     }
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Clone, Deserialize)]
 pub enum Status {
-    #[serde(rename = "error")]
-    Error,
-    #[serde(rename = "success")]
-    Success,
-    #[serde(rename = "abort")]
-    Abort,
+    error,
+    success,
+    abort,
 }
 
+#[allow(non_camel_case_types)]
 #[derive(Clone, Deserialize)]
 #[serde(tag = "type")]
 pub enum Location {
-    #[serde(rename = "wasm")]
-    Wasm { uri: String },
-    #[serde(rename = "oci")]
-    Oci { repo: String, image: String },
+    wasm { uri: String },
+    oci { repo: String, image: String },
 }
 
 #[derive(Clone, Deserialize)]
