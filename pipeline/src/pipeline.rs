@@ -10,16 +10,18 @@ pub enum Node {
         commands: Vec<Command>,
         location: Location,
         run_on: Vec<Status>,
-        arguments: Option<Arguments>,
+        environment: Option<Environment>,
     },
     Nodes {
         description: Option<String>,
         nodes: Vec<Node>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
-        arguments: Option<Arguments>,
+        environment: Option<Environment>,
     },
 }
+
+pub type Environment = HashMap<String, String>;
 
 #[derive(Debug)]
 pub struct Command {

@@ -5,7 +5,6 @@ use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
 type Units = HashMap<String, Node>;
 type CircularCheck<'a> = Vec<&'a str>;
-type Args = Option<Arguments>;
 type Result = StdResult<p::Node, Error>;
 
 impl From<RonError> for Error {
@@ -24,7 +23,7 @@ impl TryInto<p::Node> for Pipeline {
 
 fn convert_node(
     node: &Node,
-    unit_args: &Args,
+    ref_args: &Option<HashMap<String, String>>,
     units: &Units,
     circular: CircularCheck<'_>,
     parent_run_on: &[Status],
@@ -36,29 +35,29 @@ fn convert_node(
                 description: convert_description(description),
                 nodes: list
                     .iter()
-                    .map(|item| convert_node(item, unit_args, units, circular.clone(), run_on))
+                    .map(|item| convert_node(item, ref_args, units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, Error>>()?,
                 mode: mode.into(),
                 run_on: convert_run_on(run_on),
-                arguments: unit_args.as_ref().map(Into::into),
+                environment: ref_args.clone().map(Into::into),
             }
         }
         Node::DefaultList(list) => p::Node::Nodes {
             description: convert_description(""),
             nodes: list
                 .iter()
-                .map(|item| convert_node(item, unit_args, units, circular.clone(), parent_run_on))
+                .map(|item| convert_node(item, ref_args, units, circular.clone(), parent_run_on))
                 .collect::<StdResult<Vec<p::Node>, Error>>()?,
             mode: p::ExecutionMode::Sequence.into(),
             run_on: convert_run_on(parent_run_on),
-            arguments: unit_args.as_ref().map(Into::into),
+            environment: ref_args.clone().map(Into::into),
         },
         Node::Commands { cmd, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
             commands: convert_commands(cmd),
             location: location.into(),
-            arguments: unit_args.as_ref().map(Into::into),
+            environment: ref_args.clone().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
         Node::Reference { id, args, run_on } => convert_reference(
@@ -73,7 +72,7 @@ fn convert_node(
 
 fn convert_reference<'a>(
     id: &'a str,
-    args: &Args,
+    args: &Option<HashMap<String, String>>,
     units: &Units,
     mut circular: CircularCheck<'a>,
     run_on: &[Status],
