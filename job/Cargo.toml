@@ -10,6 +10,6 @@ path = "src/lib.rs"
 
 [dependencies]
 pipeline = {path = "../pipeline"}
-handlebars = { version = "2.0.1", features = ["no_dir_source"], default-features = false }
+handlebars = "3.0.0-beta.1"
 serde_json = "1.0.40"
 serde = {version = "1.0.91", features = ["derive"]}
