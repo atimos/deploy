@@ -1,6 +1,6 @@
 mod print;
 
-use job::Jobs;
+use job::Job;
 use pipeline::from_ron;
 use std::{fs::read, path::PathBuf};
 use structopt::StructOpt;
@@ -12,7 +12,7 @@ type Result = std::result::Result<(), Box<dyn std::error::Error>>;
 enum Cli {
     #[structopt(name = "print")]
     Print {
-        #[structopt(default_value = "Pipeline.ron")]
+        #[structopt(default_value = "Deploy.ron")]
         path: PathBuf,
         #[structopt(short = "v", long = "verbose")]
         verbose: bool,
@@ -58,8 +58,5 @@ fn check(path: PathBuf) -> Result {
 }
 
 fn run(path: PathBuf) -> Result {
-    let mut jobs = Jobs::new();
-    jobs.load(from_ron(&read(path)?)?, std::env::current_dir().unwrap())?;
-
-    Ok(jobs.next().unwrap().run()?)
+    Ok(Job::load(from_ron(&read(path)?)?, std::env::current_dir()?)?.run().map(|_| ())?)
 }

@@ -1,4 +1,4 @@
-use pipeline::{Command, ExecutionMode, InstanceId, Location, Node};
+use pipeline::{data::Template, Command, ExecutionMode, InstanceId, Location, Node};
 pub fn verbose(pipeline: &pipeline::Node) {
     dbg!(pipeline);
 }
@@ -15,7 +15,7 @@ pub fn pretty(pipeline: &Node, indentation: String) {
 }
 
 fn print_node(
-    description: &Option<String>,
+    description: &Option<Template>,
     nodes: &[Node],
     mode: &ExecutionMode,
     indentation: String,
@@ -32,7 +32,7 @@ fn print_node(
 }
 
 fn print_commands(
-    description: &Option<String>,
+    description: &Option<Template>,
     location: &Location,
     cmds: &[Command],
     id: &InstanceId,

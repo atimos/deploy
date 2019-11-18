@@ -1,3 +1,4 @@
+pub mod data;
 mod error;
 mod pipeline;
 mod ron;

@@ -1,5 +1,6 @@
 mod convert;
 
+use crate::data::Template;
 use serde::Deserialize;
 use std::collections::HashMap;
 
@@ -18,7 +19,7 @@ pub enum Node {
         #[serde(flatten)]
         location: Location,
         #[serde(default)]
-        description: String,
+        description: Template,
         #[serde(default)]
         run_on: Vec<Status>,
     },
@@ -26,7 +27,7 @@ pub enum Node {
     Nodes {
         list: Vec<Node>,
         #[serde(default)]
-        description: String,
+        description: Template,
         #[serde(default)]
         mode: ExecutionMode,
         #[serde(default)]
@@ -34,7 +35,7 @@ pub enum Node {
     },
     Reference {
         id: String,
-        args: Option<HashMap<String, String>>,
+        args: Option<HashMap<String, Template>>,
         #[serde(default)]
         run_on: Vec<Status>,
     },
@@ -43,13 +44,15 @@ pub enum Node {
 #[allow(non_camel_case_types)]
 #[derive(Clone, Deserialize)]
 pub enum ExecutionMode {
+    #[serde(rename = "sequence-stop-on-error")]
+    SequenceStopOnError,
     sequence,
     parallel,
 }
 
 impl Default for ExecutionMode {
     fn default() -> Self {
-        Self::sequence
+        Self::SequenceStopOnError
     }
 }
 
@@ -65,8 +68,8 @@ pub enum Status {
 #[derive(Clone, Deserialize)]
 #[serde(tag = "type")]
 pub enum Location {
-    wasm { uri: String },
-    oci { repo: String, image: String },
+    wasm { uri: Template },
+    oci { repo: Template, image: Template },
 }
 
 #[derive(Clone, Deserialize)]
@@ -86,7 +89,7 @@ pub struct Command {
 #[derive(Clone, Deserialize)]
 #[serde(untagged)]
 pub enum Arguments {
-    Map(HashMap<String, String>),
-    List(Vec<String>),
-    String(String),
+    Map(HashMap<String, Template>),
+    List(Vec<Template>),
+    String(Template),
 }

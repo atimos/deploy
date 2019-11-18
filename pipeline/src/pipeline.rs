@@ -1,3 +1,4 @@
+use crate::data::Template;
 use std::collections::HashMap;
 
 pub type InstanceId = uuid::Uuid;
@@ -6,14 +7,14 @@ pub type InstanceId = uuid::Uuid;
 pub enum Node {
     Commands {
         id: InstanceId,
-        description: Option<String>,
+        description: Option<Template>,
         commands: Vec<Command>,
         location: Location,
         run_on: Vec<Status>,
         environment: Option<Environment>,
     },
     Nodes {
-        description: Option<String>,
+        description: Option<Template>,
         nodes: Vec<Node>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
@@ -21,7 +22,7 @@ pub enum Node {
     },
 }
 
-pub type Environment = HashMap<String, String>;
+pub type Environment = HashMap<String, Template>;
 
 #[derive(Debug)]
 pub struct Command {
@@ -31,19 +32,20 @@ pub struct Command {
 
 #[derive(Debug)]
 pub enum Arguments {
-    Map(HashMap<String, String>),
-    List(Vec<String>),
-    String(String),
+    Map(HashMap<String, Template>),
+    List(Vec<Template>),
+    String(Template),
 }
 
 #[derive(Debug)]
 pub enum Location {
-    Wasm { uri: String },
-    Oci { repository: String, image: String },
+    Wasm { uri: Template },
+    Oci { repository: Template, image: Template },
 }
 
 #[derive(Debug)]
 pub enum ExecutionMode {
+    SequenceStopOnError,
     Sequence,
     Parallel,
 }

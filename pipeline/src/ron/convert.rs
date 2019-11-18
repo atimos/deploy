@@ -1,5 +1,5 @@
 use super::*;
-use crate::{error::Error, pipeline as p};
+use crate::{data::Template, error::Error, pipeline as p};
 use ron::de::Error as RonError;
 use std::{collections::HashMap, convert::TryInto, result::Result as StdResult};
 
@@ -23,7 +23,7 @@ impl TryInto<p::Node> for Pipeline {
 
 fn convert_node(
     node: &Node,
-    ref_args: &Option<HashMap<String, String>>,
+    ref_args: &Option<HashMap<String, Template>>,
     units: &Units,
     circular: CircularCheck<'_>,
     parent_run_on: &[Status],
@@ -43,7 +43,7 @@ fn convert_node(
             }
         }
         Node::DefaultList(list) => p::Node::Nodes {
-            description: convert_description(""),
+            description: convert_description(&Template::default()),
             nodes: list
                 .iter()
                 .map(|item| convert_node(item, ref_args, units, circular.clone(), parent_run_on))
@@ -72,7 +72,7 @@ fn convert_node(
 
 fn convert_reference<'a>(
     id: &'a str,
-    args: &Option<HashMap<String, String>>,
+    args: &Option<HashMap<String, Template>>,
     units: &Units,
     mut circular: CircularCheck<'a>,
     run_on: &[Status],
@@ -88,8 +88,8 @@ fn convert_reference<'a>(
     }
 }
 
-fn convert_description(description: &str) -> Option<String> {
-    if description.is_empty() {
+fn convert_description(description: &Template) -> Option<Template> {
+    if description.inner().is_empty() {
         None
     } else {
         Some(description.to_owned())
@@ -110,6 +110,7 @@ fn convert_commands(commands: &Commands) -> Vec<p::Command> {
 impl Into<p::ExecutionMode> for &ExecutionMode {
     fn into(self) -> p::ExecutionMode {
         match self {
+            ExecutionMode::SequenceStopOnError => p::ExecutionMode::SequenceStopOnError,
             ExecutionMode::sequence => p::ExecutionMode::Sequence,
             ExecutionMode::parallel => p::ExecutionMode::Parallel,
         }
