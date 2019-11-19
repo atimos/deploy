@@ -3,64 +3,69 @@ mod error;
 mod program;
 
 use environment::Environment;
-use pipeline::Node;
+use pipeline::{InstanceId, Node};
 use program::Programs;
-use std::path::PathBuf;
-
-#[derive(Default)]
-pub struct Jobs(Vec<Job>);
-type Result<T> = std::result::Result<T, error::Error>;
-
-impl Jobs {
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    pub fn load(&mut self, pipeline: Node, path: PathBuf) -> Result<()> {
-        self.0.push(Job::new(pipeline, path)?);
-        Ok(())
-    }
-}
-
-impl Iterator for Jobs {
-    type Item = Job;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.0.is_empty() {
-            None
-        } else {
-            Some(self.0.remove(0))
-        }
-    }
-}
+use std::{collections::HashMap, path::PathBuf, result::Result as StdResult};
 
 pub struct Job {
     pipeline: Node,
+    // programs: Programs,
     environment: Environment,
-    programs: Programs,
 }
 
+pub type Result = StdResult<(Node, HashMap<InstanceId, StdResult<(), ()>>), (Node, error::Error)>;
+
 impl Job {
-    fn new(pipeline: Node, path: PathBuf) -> Result<Self> {
+    pub fn load(pipeline: Node, workspace: PathBuf) -> StdResult<Self, error::Error> {
         Ok(Self {
-            environment: Environment::new(path),
-            programs: Programs::new(&pipeline)?,
+            environment: Environment::new(workspace),
+            // programs: Programs::load(&pipeline)?,
             pipeline,
         })
     }
 
-    pub fn run(self) -> Result<()> {
-        run_node(self.pipeline, self.environment, &self.programs)
+    pub fn run(mut self) -> StdResult<(), ((), error::Error)> {
+        Ok(())
+        // let result = HashMap::default();
+        //     match run_node(&self.pipeline, &self.programs, &mut
+        // self.environment, &mut result) {         Ok(_) => Ok(Result {
+        //             pipeline: self.pipeline,
+        //             run_result: HashMap::default(),
+        //             environment: self.environment,
+        //         }),
+        //         Err(err) => Err((
+        //             Result {
+        //                 pipeline: self.pipeline,
+        //                 run_result: HashMap::default(),
+        //                 environment: self.environment,
+        //             },
+        //             err,
+        //         )),
+        //     }
     }
 }
 
-fn run_node(node: Node, mut env: Environment, programs: &Programs) -> Result<()> {
-    match node {
-        Node::Program { id, commands, arguments, .. } => {
-            programs.run(&id, &commands, &arguments.map(Into::into), &mut env)
-        }
-        Node::List { list, .. } => {
-            list.into_iter().map(|node| run_node(node, env.clone(), programs)).collect()
-        }
-    }
-}
+// fn run_node(
+//     node: &Node,
+//     programs: &Programs,
+//     environment: &mut Environment,
+//     result: Result,
+// ) -> StdResult<(), error::Error> {
+//     Ok(())
+//     // match node {
+//     //     Node::Commands { id, commands, arguments, .. } => {
+//     //         programs.run(&id, &commands, &arguments.map(Into::into), &mut
+//     // env)     }
+//     //     Node::List { list, mode, .. } => match mode {
+//     //         ExecutionMode::Sequence => {
+//     //             for node in list {
+//     //                 run_node(node, env.clone(), programs)?;
+//     //             }
+//     //             Ok(())
+//     //         }
+//     //         ExecutionMode::Parallel => {
+//     //             list.into_iter().map(|node| run_node(node, env.clone(),
+//     // programs)).collect()         }
+//     //     },
+//     // }
+// }
