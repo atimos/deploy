@@ -3,7 +3,9 @@ use handlebars::Handlebars;
 use pipeline::{data::Template, Arguments, Command, InstanceId, Location, Node};
 use std::collections::HashMap;
 
-pub struct Programs(HashMap<InstanceId, Program>);
+pub struct Programs {
+    inner: HashMap<InstanceId, Program>,
+}
 
 pub struct Output {
     status: Status,
@@ -19,70 +21,54 @@ pub enum Status {
 
 impl Programs {
     pub fn load(pipeline: &Node) -> Result<Self, Error> {
-        let mut references = Vec::new();
-        get_references(pipeline, &mut references);
-        Ok(Programs(
-            load_programs(references).collect::<Result<HashMap<InstanceId, Program>, Error>>()?,
-        ))
+        let mut programs = HashMap::new();
+        get_programs(pipeline, &mut programs);
+        Ok(Programs { inner: programs })
     }
 
     pub fn run(
-        &self,
+        &mut self,
         id: &InstanceId,
         cmds: &[Command],
         args: &Option<Arguments>,
         env: &mut Environment,
     ) -> Result<Output, Error> {
-        self.0[id].load(args, env).and_then(|binary| binary.run(cmds, args, env))
+        let program =
+            self.inner.get_mut(id).ok_or_else(|| Error::UnknownInstance(id.to_owned()))?;
+        program.load(args, env)?;
+        program.run(cmds, args, env)
     }
 }
 
 #[derive(Debug)]
-struct Program {
-    reference: Reference,
-    binary: Option<Binary>,
+pub enum Program {
+    Wasm { uri: Template, binary: Option<Vec<u8>> },
+    Oci { repository: Template, image: Template, container: Option<String> },
 }
 
 impl Program {
-    fn load(&mut self, args: &Option<Arguments>, env: &Environment) -> Result<&Binary, Error> {
-        if let None = self.binary {
-            self.binary = Some(self.reference.load(args, env)?)
-        }
-        Ok(&self.binary.unwrap())
-    }
-}
-
-#[derive(Debug)]
-pub enum Reference {
-    Wasm { uri: Template },
-    Oci { repository: Template, image: Template },
-}
-
-impl Reference {
-    fn load(&self, args: &Option<Arguments>, env: &Environment) -> Result<Binary, Error> {
-        let mut hb = Handlebars::new();
-        hb.set_strict_mode(true);
-
+    fn load(&mut self, args: &Option<Arguments>, env: &Environment) -> Result<(), Error> {
         match self {
-            Reference::Wasm { uri } => {
-                let uri = hb.render_template(uri.inner(), &None::<usize>)?;
-                Ok(Binary::Wasm(Vec::new()))
+            Self::Wasm { binary: None, uri } => {
+                let uri = uri.to_owned();
+                std::mem::replace(self, Self::Wasm { binary: Some(Vec::new()), uri });
+                Ok(())
             }
-            Reference::Oci { repository, image } => {
-                let repository = hb.render_template(repository.inner(), &None::<usize>)?;
-                let image = hb.render_template(image.inner(), &None::<usize>)?;
-                Ok(Binary::Oci(String::new()))
+            Self::Oci { repository, image, container: None } => {
+                let image = image.to_owned();
+                let repository = repository.to_owned();
+
+                std::mem::replace(self, Self::Oci {
+                    container: Some(String::new()),
+                    image,
+                    repository,
+                });
+                Ok(())
             }
+            _ => Ok(()),
         }
     }
-}
 
-#[derive(Debug)]
-pub enum Binary {
-    Wasm(Vec<u8>),
-    Oci(String),
-}
-impl Binary {
     fn run(
         &self,
         cmd: &[Command],
@@ -93,24 +79,18 @@ impl Binary {
     }
 }
 
-fn get_references(node: &Node, references: &mut Vec<(InstanceId, Reference)>) {
+fn get_programs(node: &Node, programs: &mut HashMap<InstanceId, Program>) {
     match node {
         Node::Commands { location, id, .. } => {
-            references.push((id.to_owned(), match location {
-                Location::Wasm { uri } => Reference::Wasm { uri: uri.to_owned() },
-                Location::Oci { repository, image } => {
-                    Reference::Oci { repository: repository.to_owned(), image: image.to_owned() }
-                }
-            }));
+            programs.insert(id.to_owned(), match location {
+                Location::Wasm { uri } => Program::Wasm { uri: uri.to_owned(), binary: None },
+                Location::Oci { repository, image } => Program::Oci {
+                    repository: repository.to_owned(),
+                    image: image.to_owned(),
+                    container: None,
+                },
+            });
         }
-        Node::Nodes { nodes, .. } => {
-            nodes.iter().for_each(|node| get_references(node, references));
-        }
+        Node::Nodes { nodes, .. } => nodes.iter().for_each(|node| get_programs(node, programs)),
     }
-}
-
-fn load_programs(
-    references: Vec<(InstanceId, Reference)>,
-) -> impl Iterator<Item = Result<(InstanceId, Program), Error>> {
-    references.into_iter().map(|(id, reference)| Ok((id, Program { reference, binary: None })))
 }
