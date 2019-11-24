@@ -58,8 +58,5 @@ fn check(path: PathBuf) -> Result {
 }
 
 fn run(path: PathBuf) -> Result {
-    Ok(Job::load(from_ron(&read(path)?)?, std::env::current_dir()?)?
-        .run()
-        .map(|_| ())
-        .map_err(|(_, err)| err)?)
+    Job::load(from_ron(&read(path)?)?, std::env::current_dir()?)?.run().map(|_| ()).or(Ok(()))
 }
