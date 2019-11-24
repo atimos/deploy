@@ -11,14 +11,14 @@ pub enum Node {
         commands: Vec<Command>,
         location: Location,
         run_on: Vec<Status>,
-        environment: Option<Environment>,
+        local: Option<Environment>,
     },
     Nodes {
         description: Option<Template>,
         nodes: Vec<Node>,
         mode: ExecutionMode,
         run_on: Vec<Status>,
-        environment: Option<Environment>,
+        local: Option<Environment>,
     },
 }
 

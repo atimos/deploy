@@ -23,7 +23,7 @@ impl TryInto<p::Node> for Pipeline {
 
 fn convert_node(
     node: &Node,
-    ref_args: &Option<HashMap<String, Template>>,
+    local_env: &Option<HashMap<String, Template>>,
     units: &Units,
     circular: CircularCheck<'_>,
     parent_run_on: &[Status],
@@ -35,34 +35,34 @@ fn convert_node(
                 description: convert_description(description),
                 nodes: list
                     .iter()
-                    .map(|item| convert_node(item, ref_args, units, circular.clone(), run_on))
+                    .map(|item| convert_node(item, local_env, units, circular.clone(), run_on))
                     .collect::<StdResult<Vec<p::Node>, Error>>()?,
                 mode: mode.into(),
                 run_on: convert_run_on(run_on),
-                environment: ref_args.clone().map(Into::into),
+                local: local_env.clone().map(Into::into),
             }
         }
         Node::DefaultList(list) => p::Node::Nodes {
             description: convert_description(&Template::default()),
             nodes: list
                 .iter()
-                .map(|item| convert_node(item, ref_args, units, circular.clone(), parent_run_on))
+                .map(|item| convert_node(item, local_env, units, circular.clone(), parent_run_on))
                 .collect::<StdResult<Vec<p::Node>, Error>>()?,
             mode: p::ExecutionMode::Sequence.into(),
             run_on: convert_run_on(parent_run_on),
-            environment: ref_args.clone().map(Into::into),
+            local: local_env.clone().map(Into::into),
         },
         Node::Commands { cmd, location, description, run_on } => p::Node::Commands {
             id: p::InstanceId::new_v4(),
             description: convert_description(description),
             commands: convert_commands(cmd),
             location: location.into(),
-            environment: ref_args.clone().map(Into::into),
+            local: local_env.clone().map(Into::into),
             run_on: convert_run_on(if run_on.is_empty() { parent_run_on } else { &run_on }),
         },
-        Node::Reference { id, args, run_on } => convert_reference(
+        Node::Reference { id, local, run_on } => convert_reference(
             id,
-            args,
+            local,
             units,
             circular,
             if run_on.is_empty() { parent_run_on } else { &run_on },
@@ -72,7 +72,7 @@ fn convert_node(
 
 fn convert_reference<'a>(
     id: &'a str,
-    args: &Option<HashMap<String, Template>>,
+    local_env: &Option<HashMap<String, Template>>,
     units: &Units,
     mut circular: CircularCheck<'a>,
     run_on: &[Status],
@@ -82,7 +82,7 @@ fn convert_reference<'a>(
         Err(Error::Recursion(circular.into_iter().map(String::from).collect()))
     } else if let Some(unit) = units.get(id) {
         circular.push(id);
-        convert_node(unit, args, units, circular, run_on)
+        convert_node(unit, local_env, units, circular, run_on)
     } else {
         Err(Error::NotFound(id.to_owned()))
     }

@@ -1,43 +1,50 @@
 (
     pipeline: [
-        (
-            description: "Setup environment",
+        (description: "Setup global environment", list: [
+         (
             type: "wasm",
             uri: "core://env",
-            cmd: (name: "set", args: {"dockerhub": "https://registry.hub.docker.com"}),
-        ),
+            cmd: (name: "set_global", args: {
+                "service_name": "ServiceName",
+                "dockerhub": "https://registry.hub.docker.com"
+            }),
+         ),
+         (
+            type: "wasm",
+            uri: "core://env",
+            cmd: (name: "set_global_mut", args: {"global_counter": "0"}),
+         )
+        ]),
 
         (description: "Run checks, unit tests and integration tests", list: [
-            (id: "composer-install", args: {"env": "dev"}),
+            (id: "composer-install", local: {"env": "dev"}),
             (mode: "parallel", list: [
-                (cmd: (name: "composer", args: "test:unit"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
-                (cmd: (name: "composer", args: "test:integration"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
-                (cmd: (name: "composer", args: "check:style"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
-                (cmd: (name: "composer", args: "check:mess"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
+                (cmd: (name: "composer", args: "test:unit"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
+                (cmd: (name: "composer", args: "test:integration"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
+                (cmd: (name: "composer", args: "check:style"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
+                (cmd: (name: "composer", args: "check:mess"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
             ]),
         ]),
 
         (description: "Build docker images", list: [
+            (
+                cmd: (name: "set_local", args: {"tag": "{{global.docker_repo}}:{{const.service_name}}/{{const.build_number}}"}),
+                type: "wasm",
+                uri: "core://env"
+            ),
+            (id: "composer-install", local: {"env": "no-dev"}),
             (mode: "parallel", list: [
-                (
-                    cmd: (name: "set_local", args: {"tag": "{{env.docker_repo}}:{{env.service_name}}/{{env.build_number}}"}),
-                    type: "wasm",
-                    uri: "core://env"
-                ),
-                (id: "composer-install", args: {"env": "no-dev"}),
-            ]),
-            (mode: "parallel", list: [
-                (id: "build-image", args: {"image": "Dockerfile.fpm", "tag": "{{env.tag}}/fpm"}),
-                (id: "build-image", args: {"image": "Dockerfile.nginx", "tag": "{{env.tag}}/nginx"}),
+                (id: "build-image", local: {"image": "Dockerfile.fpm", "tag": "{{local.tag}}/fpm"}),
+                (id: "build-image", local: {"image": "Dockerfile.nginx", "tag": "{{local.tag}}/nginx"}),
             ]),
         ]),
 
         (description: "Run system and integration tests", list: [
-            (id: "composer-install", args: {"env": "dev"}),
+            (id: "composer-install", local: {"env": "dev"}),
             [
-                (id: "composer-install", args: {"env": "dev"}),
-                (cmd: (name: "composer", args: "test:system"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
-                (cmd: (name: "composer", args: "test:e2e"), type: "oci", repo: "{{env.dockerhub}}", image: "composer"),
+                (id: "composer-install", local: {"env": "dev"}),
+                (cmd: (name: "composer", args: "test:system"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
+                (cmd: (name: "composer", args: "test:e2e"), type: "oci", repo: "{{global.dockerhub}}", image: "composer"),
             ],
         ]),
 
@@ -48,13 +55,13 @@
     ],
 
     units: {
-        "build-image": (type: "oci", repo: "{{env.dockerhub}}", image: "docker", cmd: [
-            (name: "build", args: {"-f": "{{args.image}}", "-t": "{{args.tag}}"}),
-            (name: "push", args: "{{args.tag}}"),
+        "build-image": (type: "oci", repo: "{{global.dockerhub}}", image: "docker", cmd: [
+            (name: "build", args: {"-f": "{{local.image}}", "-t": "{{local.tag}}"}),
+            (name: "push", args: "{{local.tag}}"),
         ]),
         "composer-install": (
-            description: "Install packages --{{args.env}}",
-            list: [(cmd: (name: "composer", args: ["install", "--{{args.env}}"]), type: "oci", repo: "{{env.dockerhub}}", image: "composer")],
+            description: "Install packages --{{local.env}}",
+            list: [(cmd: (name: "composer", args: ["install", "--{{local.env}}"]), type: "oci", repo: "{{global.dockerhub}}", image: "composer")],
         ),
     },
 )

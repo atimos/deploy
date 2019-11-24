@@ -35,7 +35,7 @@ pub enum Node {
     },
     Reference {
         id: String,
-        args: Option<HashMap<String, Template>>,
+        local: Option<HashMap<String, Template>>,
         #[serde(default)]
         run_on: Vec<Status>,
     },
