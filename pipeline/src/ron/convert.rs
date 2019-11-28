@@ -48,7 +48,7 @@ fn convert_node(
                 .iter()
                 .map(|item| convert_node(item, local_env, units, circular.clone(), parent_run_on))
                 .collect::<StdResult<Vec<p::Node>, Error>>()?,
-            mode: p::ExecutionMode::Sequence.into(),
+            mode: p::ExecutionMode::Sequence,
             run_on: convert_run_on(parent_run_on),
             local: local_env.clone().map(Into::into),
         },
