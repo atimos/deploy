@@ -1,8 +1,9 @@
+#![feature(process_exitcode_placeholder)]
 mod print;
 
 use job::Job;
 use pipeline::from_ron;
-use std::{fs::read, path::PathBuf};
+use std::{fs::read, path::PathBuf, process::ExitCode};
 use structopt::StructOpt;
 
 type Result = std::result::Result<(), Box<dyn std::error::Error>>;
@@ -29,15 +30,19 @@ enum Cli {
     },
 }
 
-fn main() {
+fn main() -> ExitCode {
     let result = match Cli::from_args() {
         Cli::Print { path, verbose } => print(path, verbose),
         Cli::Check { path } => check(path),
         Cli::Run { path } => run(path),
     };
 
-    if let Err(error) = result {
-        eprintln!("Error: {}", error);
+    match result {
+        Ok(_) => ExitCode::SUCCESS,
+        Err(err) => {
+            eprintln!("Error: {}", err);
+            ExitCode::FAILURE
+        }
     }
 }
 
