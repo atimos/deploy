@@ -25,7 +25,7 @@ impl Job {
     }
 
     pub fn run(mut self) -> Result<(Node, OutputMap), (Node, OutputMap)> {
-        match run_node(&self.pipeline, &self.programs, &mut self.environment) {
+        match run_node(&self.pipeline, &self.programs, &mut self.environment.vars) {
             Ok(output) => Ok((self.pipeline, dbg!(output))),
             Err(output) => Err((self.pipeline, dbg!(output))),
         }
@@ -35,7 +35,7 @@ impl Job {
 fn run_node(
     node: &Node,
     programs: &Programs,
-    environment: &mut Environment,
+    environment: &mut Variables,
 ) -> Result<OutputMap, OutputMap> {
     match node {
         Node::Commands { id, commands, local, .. } => {

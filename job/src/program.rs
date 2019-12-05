@@ -1,4 +1,4 @@
-use crate::{environment::Environment, error::Error};
+use crate::{environment::Variables, error::Error};
 use pipeline::{data::Template, Command, InstanceId, Location, Node};
 use std::{collections::HashMap, result::Result as StdResult};
 
@@ -29,7 +29,7 @@ impl Programs {
         Ok(Programs { inner: programs })
     }
 
-    pub fn run(&self, id: &InstanceId, cmds: &[Command], env: &mut Environment) -> Result {
+    pub fn run(&self, id: &InstanceId, cmds: &[Command], env: &mut Variables) -> Result {
         match self.inner.get(id) {
             Some(entry) => match entry {
                 Entry::Reference(reference) => Ok(reference.load(id, env)?.run(cmds, env)),
@@ -71,9 +71,16 @@ enum Program {
 
 impl Program {
     fn run(&self, cmds: &[Command], env: &mut Environment) -> Vec<Output> {
-        cmds.iter()
-            .map(|_| Output { err: Vec::new(), ok: Vec::new(), status: Status::Success })
-            .collect()
+        match self {
+            Self::Wasm { .. } => cmds
+                .iter()
+                .map(|_| Output { err: Vec::new(), ok: Vec::new(), status: Status::Success })
+                .collect(),
+            Self::Oci { .. } => cmds
+                .iter()
+                .map(|_| Output { err: Vec::new(), ok: Vec::new(), status: Status::Success })
+                .collect(),
+        }
     }
 }
 
